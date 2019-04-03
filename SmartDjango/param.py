@@ -30,7 +30,7 @@ class Param:
             self._dict = d
 
         def __getattr__(self, item):
-            return getattr(self._dict, item)
+            return self._dict.get(item)
 
     def __init__(self, name, verbose_name=None):
         self.name = name
@@ -115,7 +115,7 @@ class Param:
             return
         for param in param_list:
             if isinstance(param, Param):
-                value = getattr(param_dict, param.name, None)
+                value = param_dict.get(param.name)
                 ret = param.do(value)
                 if not ret.ok:
                     return ret
