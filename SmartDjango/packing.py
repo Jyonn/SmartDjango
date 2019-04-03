@@ -3,7 +3,7 @@ from functools import wraps
 
 from django.http import HttpResponse
 
-from error import BaseError, E, EInstance, ErrorDict
+from SmartDjango.error import BaseError, ETemplate, EInstance, ErrorDict
 
 
 class Packing:
@@ -20,7 +20,7 @@ class Packing:
             self.error = BaseError.OK
         else:
             arg = args[0]
-            if isinstance(arg, E):
+            if isinstance(arg, ETemplate):
                 self.error = arg()
             elif isinstance(arg, EInstance):
                 self.error = arg
@@ -34,12 +34,17 @@ class Packing:
         self.extend = self.extend or kwargs
 
     def __getattribute__(self, item):
+        if item == 'ok':
+            return object.__getattribute__(self, '_ok')()
         try:
             return object.__getattribute__(self, item)
         except AttributeError:
             return None
 
-    def ok(self):
+    def __str__(self):
+        return 'Ret(error=%s, body=%s, extend=%s)' % (self.error, self.body, self.extend)
+
+    def _ok(self):
         return self.error.e.eid == BaseError.OK.eid
 
     @staticmethod
@@ -55,10 +60,19 @@ class Packing:
         def wrapper(*args, **kwargs):
             ret = Packing(func(*args, **kwargs))
             error = ret.error
+            if error.append_msg:
+                if error.e.ph == ETemplate.PH_NONE:
+                    msg = error.e.msg + '，%s' % error.append_msg
+                elif error.e.ph == ETemplate.PH_FORMAT:
+                    msg = error.e.msg.format(*error.append_msg)
+                else:
+                    msg = error.e.msg % error.append_msg
+            else:
+                msg = error.e.msg
             resp = dict(
                 identifier=ErrorDict.r_get(error.e.eid),
                 code=error.e.eid,
-                msg=error.e.msg + (('，%s' % error.append_msg) if error.append_msg else ''),
+                msg=msg,
                 body=ret.body,
             )
             return HttpResponse(

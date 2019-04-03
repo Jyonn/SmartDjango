@@ -1,11 +1,11 @@
-import inspect
 from functools import wraps
 
 import getclass
 from django.db import models
 
-from error import BaseError
-from packing import Packing
+from SmartDjango.arg import get_arg_dict
+from SmartDjango.error import BaseError
+from SmartDjango.packing import Packing
 
 
 class SmartModel(models.Model):
@@ -82,23 +82,17 @@ class SmartModel(models.Model):
 
     @staticmethod
     def _validator(cls):
-        def _validate(func):
+        def decorator(func):
             @wraps(func)
             @Packing.pack
             def wrapper(*args, **kwargs):
-                arg_dict = dict()
-                for parameter in inspect.signature(func).parameters:
-                    o_param = inspect.signature(func).parameters[parameter]
-                    arg_dict[parameter] = o_param.default
-                args_name = list(inspect.signature(func).parameters.keys()) + list(kwargs.keys())
-                arg_dict.update(dict(zip(args_name, args)))
-                arg_dict.update(kwargs)
+                arg_dict = get_arg_dict(func, args, kwargs)
                 ret = SmartModel.__validator(cls, arg_dict)
                 if ret.error is not BaseError.OK:
                     return ret
                 return func(*args, **kwargs)
             return wrapper
-        return _validate
+        return decorator
 
     def __getattribute__(self, item):
         attr = object.__getattribute__(self, item)
@@ -111,3 +105,17 @@ class SmartModel(models.Model):
         if hasattr(SmartModel.__dict__, item):
             return attr
         return object.__getattribute__(self, '_validator')(_class)(attr)
+
+    def dictor(self, field_list, string=True):
+        d = dict()
+        for field in field_list:
+            if not isinstance(field, models.Field):
+                continue
+
+            value = getattr(self, field.name, None)
+            if string:
+                readable_func = getattr(self, '_readable_%s' % field.name, None)
+                if readable_func and callable(readable_func):
+                    value = readable_func()
+            d[field.name] = value
+        return d
