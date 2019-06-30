@@ -96,6 +96,7 @@ class Param:
             self.processors.insert(0, Param.Processor(validator, only_validate=True))
         else:
             self.processors.append(Param.Processor(validator, only_validate=True))
+        return self
 
     def process(self, processor, begin=False):
         if begin:
