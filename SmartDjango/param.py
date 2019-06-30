@@ -80,7 +80,7 @@ class Param:
         param.allow_null = self.allow_null
         param.is_array = self.is_array
 
-        param.processors = self.processors
+        param.processors = self.processors[:]
         param.children = self.children
         return param
 
