@@ -40,10 +40,11 @@ class SmartPager:
             self.order_by = order_by
 
     def page(self, queryset: SmartQuerySet, last=0, count=5):
+        total_count = queryset.count()
         if self.mode == self.FILTER_FIRST:
             objects = queryset.filter(**{self.filter_key: last}).order_by(*self.order_by)
-            total_count = objects.count()
-            if total_count > count:
+            page_count = objects.count()
+            if page_count > count:
                 objects = objects[:count]
                 _next = getattr(objects[count-1], self.compared_field)
             else:
@@ -51,8 +52,8 @@ class SmartPager:
         else:
             objects = queryset.order_by(*self.order_by)
             objects = objects[last:]
-            total_count = objects.count()
-            if total_count > count:
+            page_count = objects.count()
+            if page_count > count:
                 objects = objects[:count]
                 _next = last + count
             else:
