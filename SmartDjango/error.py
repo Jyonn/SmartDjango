@@ -19,7 +19,7 @@ class ETemplate:
     PH_FORMAT = 1
     PH_S = 2
 
-    def __init__(self, msg, ph=PH_NONE):
+    def __init__(self, msg, ph=PH_NONE, hc=200):
         """
         错误类构造函数
         :param msg: 错误的中文解释
@@ -28,6 +28,7 @@ class ETemplate:
         self.msg = msg
         self.ph = ph
         self.eid = ETemplate._id
+        self.hc = hc  # http code
 
         ETemplate._id += 1
 
@@ -38,52 +39,52 @@ class ETemplate:
         return 'Error %s: %s' % (self.eid, self.msg)
 
     def dictor(self):
-        from SmartDjango import Param
-        return Param.dictor(self, ['msg', 'eid'])
+        from SmartDjango import Attribute
+        return Attribute.dictor(self, ['msg', 'eid'])
 
 
-ET = ETemplate
-E = ET
+E = ETemplate
 
 
-class BaseError:
-    OK = ETemplate("没有错误")
-    FIELD_VALIDATOR = ETemplate("字段校验器错误")
-    FIELD_PROCESSOR = ETemplate("字段处理器错误")
-    FIELD_FORMAT = ETemplate("字段格式错误")
-    RET_FORMAT = ETemplate("函数返回格式错误")
-    MISS_PARAM = ETemplate("缺少参数{0}", ET.PH_FORMAT)
-
-
-class ErrorDict:
+class ErrorCenter:
     d = dict()
     reversed_d = dict()
 
     @staticmethod
-    def update(error_class):
-        for k in error_class.__dict__:
-            if k[0] != '_':
-                e = getattr(error_class, k)
-                if isinstance(e, ETemplate):
-                    if k in ErrorDict.d:
-                        print('conflict error identifier', k)
-                    ErrorDict.d[k] = e
-                    ErrorDict.reversed_d[e.eid] = k
-
-    @staticmethod
     def get(k):
-        return ErrorDict.d.get(k)
+        return ErrorCenter.d.get(k)
 
     @staticmethod
     def r_get(eid):
-        return ErrorDict.reversed_d.get(eid)
+        return ErrorCenter.reversed_d.get(eid)
 
     @staticmethod
     def all():
         _dict = dict()
-        for item in ErrorDict.d:
-            _dict[item] = ErrorDict.d[item].dictor()
+        for item in ErrorCenter.d:
+            _dict[item] = ErrorCenter.d[item].dictor()
         return _dict
 
+    @classmethod
+    def register(cls):
+        for k in cls.__dict__:
+            if k[0] != '_':
+                e = getattr(cls, k)
+                if isinstance(e, ETemplate):
+                    if k in ErrorCenter.d:
+                        raise AttributeError('conflict error identifier %s' % k)
+                    ErrorCenter.d[k] = e
+                    ErrorCenter.reversed_d[e.eid] = k
 
-ErrorDict.update(BaseError)
+
+class BaseError(ErrorCenter):
+    OK = E("没有错误", hc=200)
+    FIELD_VALIDATOR = E("字段校验器错误", hc=500)
+    FIELD_PROCESSOR = E("字段处理器错误", hc=500)
+    FIELD_FORMAT = E("字段格式错误", hc=400)
+    RET_FORMAT = E("函数返回格式错误", hc=500)
+    MISS_PARAM = E("缺少参数{0}({1})", E.PH_FORMAT, hc=400)
+    STRANGE = E("未知错误", hc=500)
+
+
+BaseError.register()

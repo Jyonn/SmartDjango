@@ -1,22 +1,11 @@
-import json
 import re
-from functools import wraps
+from typing import List
 
 from django.db import models
-from django.http import HttpRequest
 
-from SmartDjango.arg import get_arg_dict
-from SmartDjango.error import BaseError, ETemplate, ErrorDict
-from SmartDjango.packing import Packing
-from SmartDjango.model import SmartModel
-
-
-class RequestError:
-    METHOD_NOT_MATCH = ETemplate("请求方法错误")
-    REQUEST_TYPE = ETemplate('请求体类型错误')
-
-
-ErrorDict.update(RequestError)
+from .error import BaseError
+from .packing import Packing
+from .model import SmartModel
 
 
 class Param:
@@ -24,6 +13,14 @@ class Param:
         pass
 
     class Classify:
+        def dict(self, *args):
+            if args:
+                _dict = dict()
+                for k in args:
+                    _dict[k] = self._dict.get(k)
+                return _dict
+            return self._dict
+
         def __init__(self, d):
             if not isinstance(d, dict):
                 return
@@ -32,136 +29,164 @@ class Param:
         def __getattr__(self, item):
             return self._dict.get(item)
 
+    class Processor:
+        def __init__(self, processor, only_validate=False):
+            self.processor = processor
+            self.only_validate = only_validate
+
+    """
+    创建方法
+    """
+
     def __init__(self, name, verbose_name=None):
         self.name = name
         self.verbose_name = verbose_name or name
-        self.valid_func = []
-        self.default = Param.__NoDefault()
-        self.process_func = []
+
+        self.allow_null = False
+        self.is_array = False
+        self.default_value = Param.__NoDefault()
+
+        self.processors = []
+        self.children = []
 
     def __str__(self):
-        return 'Param %s(%s), default=%s' % (self.name, self.verbose_name, self.default)
+        return 'Param %s(%s), default=%s' % (self.name, self.verbose_name, self.default_value)
 
     @staticmethod
-    def dictor(o, field_list, string=True):
-        d = dict()
-        for field_name in field_list:
-            value = getattr(o, field_name, None)
-            if string:
-                readable_func = getattr(o, '_readable_%s' % field_name, None)
-                if readable_func and callable(readable_func):
-                    value = readable_func()
-            d[field_name] = value
-        return d
+    def from_fields(fields: List[models.Field]):
+        # return [Param.from_field(field) for field in fields]
+        return tuple(map(Param.from_field, fields))
 
     @staticmethod
-    def from_field(field):
-        if not isinstance(field, models.Field):
-            return None
+    def from_field(field: models.Field):
         param = Param(field.name, field.verbose_name)
+        param.allow_null = field.null
 
-        if isinstance(field, models.CharField):
-            param.valid_func.append(SmartModel.char_validator(field))
-        if field.choices:
-            param.valid_func.append(SmartModel.choice_validator(field))
+        param.validate(SmartModel.field_validator(field))
+        class_ = field.model
+        validator = getattr(class_, '_valid_%s' % field.name, None)
+        if callable(validator):
+            param.validate(validator)
+        return param
 
-    @Packing.pack
-    def do(self, value):
-        if not value:
-            if self.has_default():
-                value = self.default
-            else:
-                return BaseError.MISS_PARAM(self.verbose_name)
-        value = value or self.default
-        for func in self.valid_func:
-            if isinstance(func, str):
-                if not isinstance(value, str) or not re.match(func, value):
-                    return BaseError.FIELD_FORMAT(self.verbose_name)
-            elif callable(func):
-                try:
-                    ret = func(value)
-                    if not ret.ok:
-                        return ret
-                except Exception:
-                    return BaseError.FIELD_VALIDATOR
+    @staticmethod
+    def from_param(copied_param: object):
+        if isinstance(copied_param, Param):
+            return copied_param.clone()
 
-        for process in self.process_func:
-            if callable(process):
-                try:
-                    value = process(value)
-                except Exception:
-                    return BaseError.FIELD_PROCESSOR
-        return value
+    def clone(self):
+        param = Param(self.name, self.verbose_name)
+        param.default_value = self.default_value
+        param.allow_null = self.allow_null
+        param.is_array = self.is_array
 
-    def valid(self, func):
-        self.valid_func.append(func)
+        param.processors = self.processors
+        param.children = self.children
+        return param
+
+    def base(self):
+        return Param(self.name, self.verbose_name)
+
+    """
+    参数赋值
+    """
+
+    def validate(self, validator, begin=False):
+        if begin:
+            self.processors.insert(0, Param.Processor(validator, only_validate=True))
+        else:
+            self.processors.append(Param.Processor(validator, only_validate=True))
+
+    def process(self, processor, begin=False):
+        if begin:
+            self.processors.insert(0, Param.Processor(processor))
+        else:
+            self.processors.append(Param.Processor(processor))
         return self
 
-    def process(self, func):
-        self.process_func.append(func)
+    def default(self, v=None, allow_default=True):
+        if allow_default:
+            self.default_value = v
+        else:
+            self.default_value = self.__NoDefault
         return self
 
-    def dft(self, default):
-        self.default = default
+    def null(self, allow_null=True):
+        self.allow_null = allow_null
+        return self
+
+    def sub(self, children: List[object]):
+        self.children = []
+        if isinstance(children, list):
+            for param in children:
+                if isinstance(param, Param):
+                    self.children.append(param)
+        return self
+
+    def array(self, is_array=True):
+        self.is_array = is_array
+        return self
+
+    def rename(self, name, verbose_name=None):
+        self.name = name
+        self.verbose_name = verbose_name or name
         return self
 
     def has_default(self):
-        return not isinstance(self.default, Param.__NoDefault)
+        return not isinstance(self.default_value, Param.__NoDefault)
 
-    @staticmethod
     @Packing.pack
-    def _validator(param_list, param_dict):
-        if not param_list:
-            return
-        for param in param_list:
-            if isinstance(param, Param):
-                value = param_dict.get(param.name)
-                ret = param.do(value)
+    def run(self, value):
+        if value is None:
+            if self.allow_null:
+                return None
+            if self.has_default():
+                value = self.default_value
+            else:
+                return BaseError.MISS_PARAM((self.name, self.verbose_name))
+
+        if self.is_array:
+            param = Param('%s/sub' % self.name, '%s/列表元素' % self.verbose_name).sub(self.children)
+            if not isinstance(value, list):
+                return BaseError.FIELD_FORMAT('%s不是列表' % self.verbose_name)
+            for item_value in value:
+                ret = param.run(item_value)
                 if not ret.ok:
                     return ret
-                param_dict[param.name] = ret.body
-        return param_dict
-
-    @staticmethod
-    def require(b=None, q=None, a=None, method=None):
-        """
-        请求预先包装
-        :param b: request.body
-        :param q: request.query
-        :param a: args and kwargs
-        :param method: 请求方法
-        :return: 在request.d中存放参数字典
-        """
-        def decorator(func):
-            @wraps(func)
-            def wrapper(request, *args, **kwargs):
-                if not isinstance(request, HttpRequest):
-                    return RequestError.REQUEST_TYPE
-                if method and method != request.method:
-                    return RequestError.METHOD_NOT_MATCH
-                param_dict = dict()
-
-                request.a_dict = get_arg_dict(func, args, kwargs)
-                ret = Param._validator(a, request.a_dict)
+        else:
+            for param in self.children:
+                if not isinstance(value, dict):
+                    return BaseError.FIELD_FORMAT('%s不存在子参数' % self.verbose_name)
+                child_value = value.get(param.name)
+                ret = param.run(child_value)
                 if not ret.ok:
                     return ret
-                param_dict.update(ret.body or {})
 
-                request.q_dict = request.GET.dict() or {}
-                ret = Param._validator(q, request.q_dict)
-                if not ret.ok:
-                    return ret
-                param_dict.update(ret.body or {})
+        for processor in self.processors:
+            if processor.only_validate:
+                # as a validator
+                if isinstance(processor.processor, str):
+                    if not re.match(processor.processor, str(value)):
+                        return BaseError.FIELD_FORMAT('%s正则匹配失败' % self.verbose_name)
+                elif callable(processor.processor):
+                    try:
+                        ret = processor.processor(value)
+                        if not ret.ok:
+                            return ret
+                    except Exception as err:
+                        return BaseError.FIELD_VALIDATOR(str(err))
+            else:
+                # as a processor
+                if callable(processor.processor):
+                    try:
+                        ret = processor.processor(value)
+                    except Exception as err:
+                        return BaseError.FIELD_PROCESSOR(str(err))
+                    if isinstance(ret, Packing):
+                        if not ret.ok:
+                            return ret
+                        value = ret.body
+                    else:
+                        value = ret
 
-                try:
-                    request.b_dict = json.loads(request.body.decode())
-                except json.JSONDecodeError:
-                    request.b_dict = {}
-                ret = Param._validator(b, request.b_dict)
-                if not ret.ok:
-                    return ret
-                param_dict.update(ret.body or {})
-                request.d = Param.Classify(param_dict)
-                return func(request, *args, **kwargs)
-            return wrapper
-        return decorator
+        return value

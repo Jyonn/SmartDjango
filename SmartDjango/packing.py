@@ -3,7 +3,7 @@ from functools import wraps
 
 from django.http import HttpResponse
 
-from SmartDjango.error import BaseError, ETemplate, EInstance, ErrorDict
+from .error import BaseError, ETemplate, EInstance, ErrorCenter
 
 
 class Packing:
@@ -34,8 +34,8 @@ class Packing:
         self.extend = self.extend or kwargs
 
     def __getattribute__(self, item):
-        if item == 'ok':
-            return object.__getattribute__(self, '_ok')()
+        # if item == 'ok':
+        #     return object.__getattribute__(self, '_ok')()
         try:
             return object.__getattribute__(self, item)
         except AttributeError:
@@ -44,8 +44,12 @@ class Packing:
     def __str__(self):
         return 'Ret(error=%s, body=%s, extend=%s)' % (self.error, self.body, self.extend)
 
-    def _ok(self):
+    @property
+    def ok(self):
         return self.error.e.eid == BaseError.OK.eid
+
+    def erroris(self, e):
+        return self.error.e.eid == e.eid
 
     @staticmethod
     def pack(func):
@@ -57,8 +61,8 @@ class Packing:
     @staticmethod
     def http_pack(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
-            ret = Packing(func(*args, **kwargs))
+        def wrapper(request, *args, **kwargs):
+            ret = Packing(func(request, *args, **kwargs))
             error = ret.error
             if error.append_msg:
                 if error.e.ph == ETemplate.PH_NONE:
@@ -70,15 +74,20 @@ class Packing:
             else:
                 msg = error.e.msg
             resp = dict(
-                identifier=ErrorDict.r_get(error.e.eid),
+                identifier=ErrorCenter.r_get(error.e.eid),
                 code=error.e.eid,
                 msg=msg,
                 body=ret.body,
             )
             return HttpResponse(
                 json.dumps(resp, ensure_ascii=False),
-                status=200,
+                status=error.e.hc,
+                # status=200,
                 content_type="application/json; encoding=utf-8",
             )
 
         return wrapper
+
+    @staticmethod
+    def safe_unpack(ret, default=None):
+        return ret.body if ret.ok else default
