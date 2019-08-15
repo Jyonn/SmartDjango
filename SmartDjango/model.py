@@ -1,4 +1,5 @@
 import datetime
+from typing import Tuple, List
 
 from django.db import models
 from django.db.models import Q
@@ -127,12 +128,12 @@ class SmartModel(models.Model):
         abstract = True
 
     @classmethod
-    def get_fields(cls, field_names):
+    def get_fields(cls, field_names: List[str]) -> Tuple[models.Field]:
         field_dict = {}
-        for o_field in cls._meta.fields:
-            field_dict[o_field.name] = o_field
+        for field in cls._meta.fields:
+            field_dict[field.name] = field
 
-        fields = []
+        fields = []  # type: List[models.Field]
         for field_name in field_names:
             fields.append(field_dict.get(field_name))
 
@@ -141,6 +142,19 @@ class SmartModel(models.Model):
     @classmethod
     def get_field(cls, field_name):
         return cls.get_fields([field_name])[0]
+
+    @classmethod
+    def get_params(cls, field_names):
+        from .param import Param
+        return Param.from_fields(cls.get_fields(field_names))
+
+    @classmethod
+    def get_param(cls, field_name):
+        from .param import Param
+        return Param.from_field(cls.get_field(field_name))
+
+    F = get_fields
+    P = get_params
 
     @staticmethod
     def d_self(self):
@@ -215,7 +229,7 @@ class SmartModel(models.Model):
                 if not ret.ok:
                     return ret
 
-            # 自定义函数
+            # custom validation functions
             valid_func = getattr(cls, '_valid_%s' % attr, None)
             if valid_func and callable(valid_func):
                 try:

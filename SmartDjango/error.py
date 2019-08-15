@@ -11,7 +11,7 @@ class EInstance:
 
 class ETemplate:
     """
-    错误类，基类
+    Error base Class
     """
     _id = 0  # 每个错误实例的唯一ID
 

@@ -34,7 +34,11 @@ class Analyse:
         return result
 
     @classmethod
-    def params(cls, *param_list):
+    def p(cls, *param_list):
+        """
+        decorator for validating arguments in a method or a function
+        :param param_list: a list of Param
+        """
         def decorator(func):
             @wraps(func)
             def wrapper(*args, **kwargs):
@@ -48,6 +52,13 @@ class Analyse:
 
     @classmethod
     def r(cls, b=None, q=None, a=None, method=None):
+        """
+        decorator for validating HttpRequest
+        :param b: Param list in it's BODY, in json format, without method in GET/DELETE
+        :param q: Param list in it's query
+        :param a: Param list in method/function argument
+        :param method: Specify request method
+        """
         def decorator(func):
             @wraps(func)
             def wrapper(request, *args, **kwargs):
@@ -83,4 +94,3 @@ class Analyse:
             return wrapper
 
         return decorator
-

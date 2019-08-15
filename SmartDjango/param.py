@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Tuple
 
 from django.db import models
 
@@ -53,7 +53,7 @@ class Param:
         return 'Param %s(%s), default=%s' % (self.name, self.verbose_name, self.default_value)
 
     @staticmethod
-    def from_fields(fields: List[models.Field]):
+    def from_fields(fields: Tuple[models.Field]):
         # return [Param.from_field(field) for field in fields]
         return tuple(map(Param.from_field, fields))
 

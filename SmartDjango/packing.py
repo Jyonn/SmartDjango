@@ -34,8 +34,6 @@ class Packing:
         self.extend = self.extend or kwargs
 
     def __getattribute__(self, item):
-        # if item == 'ok':
-        #     return object.__getattribute__(self, '_ok')()
         try:
             return object.__getattribute__(self, item)
         except AttributeError:
