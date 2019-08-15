@@ -30,7 +30,7 @@ class Analyse:
                 ret = param.run(value)
                 if not ret.ok:
                     return ret
-                result[param.name] = ret.body
+                result[param.yield_name or param.name] = ret.body
         return result
 
     @classmethod

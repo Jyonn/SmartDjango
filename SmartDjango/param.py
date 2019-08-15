@@ -38,9 +38,10 @@ class Param:
     创建方法
     """
 
-    def __init__(self, name, verbose_name=None):
+    def __init__(self, name, verbose_name=None, yield_name=None):
         self.name = name
         self.verbose_name = verbose_name or name
+        self.yield_name = yield_name or name
 
         self.allow_null = False
         self.is_array = False
@@ -54,7 +55,6 @@ class Param:
 
     @staticmethod
     def from_fields(fields: Tuple[models.Field]):
-        # return [Param.from_field(field) for field in fields]
         return tuple(map(Param.from_field, fields))
 
     @staticmethod
@@ -150,10 +150,13 @@ class Param:
             param = Param('%s/sub' % self.name, '%s/列表元素' % self.verbose_name).sub(self.children)
             if not isinstance(value, list):
                 return BaseError.FIELD_FORMAT('%s不是列表' % self.verbose_name)
+            new_value = []
             for item_value in value:
                 ret = param.run(item_value)
                 if not ret.ok:
                     return ret
+                new_value.append(ret.body)
+            value = new_value
         else:
             for param in self.children:
                 if not isinstance(value, dict):
@@ -162,6 +165,9 @@ class Param:
                 ret = param.run(child_value)
                 if not ret.ok:
                     return ret
+                if param.yield_name != param.name:
+                    del value[param.name]
+                    value.setdefault(param.yield_name, ret.body)
 
         for processor in self.processors:
             if processor.only_validate:
