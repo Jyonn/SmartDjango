@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='SmartDjango',
-    version='2.0.5 beta',
+    version='2.0.5 beta2',
     keywords=('django',),
     description='更高效率的Django开发[Chinese Version]',
     long_description='提供智能模型用于字段检测，函数返回类，错误类等',

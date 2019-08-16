@@ -128,9 +128,10 @@ class Param:
         self.is_array = is_array
         return self
 
-    def rename(self, name, verbose_name=None):
+    def rename(self, name, verbose_name=None, yield_name=None):
         self.name = name
         self.verbose_name = verbose_name or name
+        self.yield_name = yield_name or name
         return self
 
     def has_default(self):
