@@ -60,31 +60,33 @@ class Packing:
     def http_pack(func):
         @wraps(func)
         def wrapper(request, *args, **kwargs):
-            ret = Packing(func(request, *args, **kwargs))
-            error = ret.error
-            if error.append_msg:
-                if error.e.ph == ETemplate.PH_NONE:
-                    msg = error.e.msg + '，%s' % error.append_msg
-                elif error.e.ph == ETemplate.PH_FORMAT:
-                    msg = error.e.msg.format(*error.append_msg)
-                else:
-                    msg = error.e.msg % error.append_msg
-            else:
-                msg = error.e.msg
-            resp = dict(
-                identifier=ErrorCenter.r_get(error.e.eid),
-                code=error.e.eid,
-                msg=msg,
-                body=ret.body,
-            )
-            return HttpResponse(
-                json.dumps(resp, ensure_ascii=False),
-                status=error.e.hc,
-                # status=200,
-                content_type="application/json; encoding=utf-8",
-            )
-
+            return Packing.http_response(func(request, *args, **kwargs))
         return wrapper
+
+    @staticmethod
+    def http_response(o):
+        ret = Packing(o)
+        error = ret.error
+        if error.append_msg:
+            if error.e.ph == ETemplate.PH_NONE:
+                msg = error.e.msg + '，%s' % error.append_msg
+            elif error.e.ph == ETemplate.PH_FORMAT:
+                msg = error.e.msg.format(*error.append_msg)
+            else:
+                msg = error.e.msg % error.append_msg
+        else:
+            msg = error.e.msg
+        resp = dict(
+            identifier=ErrorCenter.r_get(error.e.eid),
+            code=error.e.eid,
+            msg=msg,
+            body=ret.body,
+        )
+        return HttpResponse(
+            json.dumps(resp, ensure_ascii=False),
+            status=error.e.hc,
+            content_type="application/json; encoding=utf-8",
+        )
 
     @staticmethod
     def safe_unpack(ret, default=None):
