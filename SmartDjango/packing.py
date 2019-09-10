@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from .error import BaseError, ETemplate, EInstance, ErrorCenter
 
 
-class Packing:
+class Packing(Exception):
     """
     函数返回类（规范）
     用于模型方法、路由控制方法等几乎所有函数中
@@ -53,14 +53,21 @@ class Packing:
     def pack(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return Packing(func(*args, **kwargs))
+            ret = Packing(func(*args, **kwargs))
+            if not ret.ok:
+                raise ret
+            return ret
         return wrapper
 
     @staticmethod
     def http_pack(func):
         @wraps(func)
         def wrapper(request, *args, **kwargs):
-            return Packing.http_response(func(request, *args, **kwargs))
+            try:
+                ret = Packing(func(request, *args, **kwargs))
+            except Packing as e:
+                ret = e
+            return Packing.http_response(ret)
         return wrapper
 
     @staticmethod

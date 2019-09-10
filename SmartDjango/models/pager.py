@@ -1,4 +1,4 @@
-from .model import SmartQuerySet
+from .query import QuerySet
 
 
 class Page:
@@ -23,7 +23,7 @@ class Page:
         )
 
 
-class SmartPager:
+class Pager:
     FILTER_FIRST = 1
     CHOOSE_AMONG = 2
 
@@ -39,7 +39,7 @@ class SmartPager:
         else:
             self.order_by = order_by
 
-    def page(self, queryset: SmartQuerySet, last=0, count=5):
+    def page(self, queryset: QuerySet, last=0, count=5):
         total_count = queryset.count()
         if self.mode == self.FILTER_FIRST:
             objects = queryset.filter(**{self.filter_key: last}).order_by(*self.order_by)
