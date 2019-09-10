@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from .error import BaseError, ETemplate, EInstance, ErrorCenter
 
 
-class Packing(Exception):
+class Excp(Exception):
     """
     函数返回类（规范）
     用于模型方法、路由控制方法等几乎所有函数中
@@ -24,7 +24,7 @@ class Packing(Exception):
                 self.error = arg()
             elif isinstance(arg, EInstance):
                 self.error = arg
-            elif isinstance(arg, Packing):
+            elif isinstance(arg, Excp):
                 self.error = arg.error
                 self.body = arg.body
                 self.extend = arg.extend
@@ -53,26 +53,27 @@ class Packing(Exception):
     def pack(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            ret = Packing(func(*args, **kwargs))
-            if not ret.ok:
-                raise ret
+            ret = func(*args, **kwargs)
+            excp = Excp(ret)
+            if not excp.ok:
+                raise excp
             return ret
         return wrapper
 
     @staticmethod
-    def http_pack(func):
+    def handle(func):
         @wraps(func)
         def wrapper(request, *args, **kwargs):
             try:
-                ret = Packing(func(request, *args, **kwargs))
-            except Packing as e:
+                ret = Excp(func(request, *args, **kwargs))
+            except Excp as e:
                 ret = e
-            return Packing.http_response(ret)
+            return Excp.http_response(ret)
         return wrapper
 
     @staticmethod
     def http_response(o):
-        ret = Packing(o)
+        ret = Excp(o)
         error = ret.error
         if error.append_msg:
             if error.e.ph == ETemplate.PH_NONE:
@@ -94,7 +95,3 @@ class Packing(Exception):
             status=error.e.hc,
             content_type="application/json; encoding=utf-8",
         )
-
-    @staticmethod
-    def safe_unpack(ret, default=None):
-        return ret.body if ret.ok else default

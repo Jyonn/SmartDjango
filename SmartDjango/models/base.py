@@ -1,10 +1,13 @@
 import datetime
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from django.db import models
 
-from SmartDjango import Packing, BaseError
-from . import Manager, fields
+from ..error import BaseError
+from ..excp import Excp
+from ..attribute import Attribute
+from .manager import Manager
+from . import fields
 
 
 class Constraint:
@@ -16,7 +19,7 @@ class Constraint:
         self.compare = compare or (lambda x: x)
         self.error_template = template or self.VALUE_T
 
-    @Packing.pack
+    @Excp.pack
     def fit(self, field, value):
         if isinstance(field, fields.CharField):
             max_, min_ = field.max_length, field.min_length
@@ -50,7 +53,7 @@ class Model(models.Model):
         default_manager_name = 'objects'
 
     @classmethod
-    def get_fields(cls, field_names: List[str]) -> Tuple[models.Field]:
+    def get_fields(cls, *field_names: str) -> Tuple[models.Field]:
         field_jar = dict()
         for field in cls._meta.fields:
             field_jar[field.name] = field
@@ -63,12 +66,12 @@ class Model(models.Model):
 
     @classmethod
     def get_field(cls, field_name) -> models.Field:
-        return cls.get_fields([field_name])[0]
+        return cls.get_fields(field_name)[0]
 
     @classmethod
-    def get_params(cls, field_names):
+    def get_params(cls, *field_names: str) -> Tuple['P']:
         from ..p import P
-        return P.from_fields(cls.get_fields(field_names))
+        return P.from_fields(*cls.get_fields(*field_names))
 
     @classmethod
     def get_param(cls, field_name):
@@ -83,7 +86,7 @@ class Model(models.Model):
         verbose = field.verbose_name
         cls = field.model
 
-        @Packing.pack
+        @Excp.pack
         def validate(value):
             for constraint in CONSTRAINTS:
                 if isinstance(field, constraint.field):
@@ -102,13 +105,47 @@ class Model(models.Model):
                 if not choice_match:
                     return BaseError.FIELD_FORMAT('%s(%s)不在可选择范围之内' % (attr, verbose))
 
-            custom_validator = getattr(cls, '_valid_%s' % attr)
+            custom_validator = getattr(cls, '_valid_%s' % attr, None)
             if callable(custom_validator):
                 try:
                     custom_validator(value)
-                except Packing as ret:
+                except Excp as ret:
                     return ret
                 except Exception:
                     return BaseError.FIELD_VALIDATOR('%s(%s)校验函数崩溃' % (attr, verbose))
 
-            return validate
+        return validate
+
+    @classmethod
+    @Excp.pack
+    def validator(cls, attr_jar: dict):
+        field_dict = dict()
+        for field in cls._meta.fields:
+            field_dict[field.name] = field
+
+        for attr in attr_jar:
+            attr_value = attr_jar[attr]
+            if attr in field_dict:
+                field = field_dict[attr]  # type: Optional[models.Field]
+            else:
+                field = None
+
+            if field:
+                try:
+                    cls.field_validator(field)(attr_value)
+                except Excp as ret:
+                    return ret
+                except Exception:
+                    return BaseError.FIELD_VALIDATOR('%s(%s)校验函数崩溃' % (attr, field.verbose_name))
+            else:
+                custom_validator = getattr(cls, '_valid_%s' % attr, None)
+                if callable(custom_validator):
+                    try:
+                        custom_validator(attr_value)
+                    except Excp as ret:
+                        return ret
+                    except Exception:
+                        return BaseError.FIELD_VALIDATOR('%s校验函数崩溃' % attr)
+
+    def dictor(self, field_list):
+        return Attribute.dictor(self, field_list)

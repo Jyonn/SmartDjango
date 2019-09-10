@@ -1,6 +1,6 @@
 from django.db import models
 
-from . import QuerySet
+from .query import QuerySet
 
 
 class Manager(models.Manager):

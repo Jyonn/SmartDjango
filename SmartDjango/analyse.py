@@ -4,7 +4,7 @@ from functools import wraps
 from django.http import HttpRequest
 
 from .p import P
-from .packing import Packing
+from .excp import Excp
 from .error import ErrorCenter, E
 from .arg import get_arg_dict
 
@@ -18,8 +18,8 @@ AnalyseError.register()
 
 class Analyse:
     @staticmethod
-    @Packing.pack
-    def _validate_params(param_list, param_dict):
+    @Excp.pack
+    def process_params(param_list, param_dict):
         result = dict()
         if not param_list:
             return result
@@ -28,7 +28,7 @@ class Analyse:
                 p = P(p)
             if isinstance(p, P):
                 value = param_dict.get(p.name)
-                yield_name, new_value = p.run(value).body
+                yield_name, new_value = p.run(value)
                 result[yield_name] = new_value
         return result
 
@@ -42,9 +42,7 @@ class Analyse:
             @wraps(func)
             def wrapper(*args, **kwargs):
                 param_dict = get_arg_dict(func, args, kwargs)
-                ret = cls._validate_params(param_list, param_dict)
-                if not ret.ok:
-                    return ret
+                cls.process_params(param_list, param_dict)
                 return func(**param_dict)
             return wrapper
         return decorator
@@ -66,25 +64,19 @@ class Analyse:
                 param_jar = dict()
 
                 r.a_dict = get_arg_dict(func, args, kwargs)
-                ret = cls._validate_params(a, r.a_dict)
-                if not ret.ok:
-                    return ret
-                param_jar.update(ret.body or {})
+                result = cls.process_params(a, r.a_dict)
+                param_jar.update(result or {})
 
                 r.q_dict = r.GET.dict() or {}
-                ret = cls._validate_params(q, r.q_dict)
-                if not ret.ok:
-                    return ret
-                param_jar.update(ret.body or {})
+                result = cls.process_params(q, r.q_dict)
+                param_jar.update(result or {})
 
                 try:
                     r.b_dict = json.loads(r.body.decode())
                 except json.JSONDecodeError:
                     r.b_dict = {}
-                ret = cls._validate_params(b, r.b_dict)
-                if not ret.ok:
-                    return ret
-                param_jar.update(ret.body or {})
+                result = cls.process_params(b, r.b_dict)
+                param_jar.update(result or {})
                 r.d = P.Classify(param_jar)
                 return func(r, *args, **kwargs)
 

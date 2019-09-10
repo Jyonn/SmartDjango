@@ -1,9 +1,10 @@
-from typing import Optional, Any, List, Callable, Tuple
+from typing import Optional, Any, List, Callable, Tuple, Union
 
 from django.db import models
 
-from SmartDjango import Packing, BaseError
-from .models import Model
+from .excp import Excp
+from .error import BaseError
+from . import models as sd_models
 
 
 class P:
@@ -60,19 +61,21 @@ class P:
             self.default = self.__NoDefault()
         return self
 
-    def as_dict(self, children: List['P']):
+    def as_dict(self, *children: Union['P', str]):
         self.dict = True
         self.list = False
-        self.children = children
+        self.children = list(map(lambda p: P(p) if isinstance(p, str) else p, children))
         return self
 
-    def as_list(self, children: List['P']):
+    def as_list(self, *children: Union['P', str]):
         self.list = True
         self.dict = False
-        self.children = children
+        self.children = list(map(lambda p: P(p) if isinstance(p, str) else p, children))
         return self
 
-    def process(self, processor: Processor, begin=False):
+    def process(self, processor: Union[Processor, Callable], begin=False):
+        if not isinstance(processor, P.Processor):
+            processor = P.Processor(processor)
         if begin:
             self.processors.insert(0, processor)
         else:
@@ -87,14 +90,14 @@ class P:
         return self
 
     @staticmethod
-    def from_field(field: models.Field):
+    def from_field(field: models.Field) -> 'P':
         p = P(field.name, read_name=field.verbose_name)
         p.null = field.null
-        p.validate(Model.field_validator(field))
+        p.validate(sd_models.Model.field_validator(field))
         return p
 
     @staticmethod
-    def from_fields(fields: Tuple[models.Field]) -> Tuple['P']:
+    def from_fields(*fields: models.Field) -> Tuple['P']:
         return tuple(map(P.from_field, fields))
 
     def clone(self):
@@ -114,7 +117,7 @@ class P:
     def has_default(self):
         return not isinstance(self.default, self.__NoDefault)
 
-    @Packing.pack
+    @Excp.pack
     def run(self, value):
         if value is None:
             if self.null:
@@ -130,7 +133,7 @@ class P:
                 return BaseError.FIELD_FORMAT('%s(%s)不存在子参数' % (self.name, self.read_name))
             for p in self.children:
                 child_value = value.get(p.name)
-                child_yield_name, child_new_value = p.run(child_value).body
+                child_yield_name, child_new_value = p.run(child_value)
                 if child_yield_name != p.name:
                     del value[p.name]
                 value.setdefault(child_yield_name, child_new_value)
@@ -138,7 +141,7 @@ class P:
             # as a list
             if not isinstance(value, list):
                 return BaseError.FIELD_FORMAT('%s(%s)不是列表' % (self.name, self.read_name))
-            p = P('%s/child' % self.name, read_name='%s/子元素' % self.read_name).as_dict(self.children)
+            p = P('%s/child' % self.name, '%s/子元素' % self.read_name).as_dict(*self.children)
             new_value = []
             for child_value in value:
                 child_yield_name, child_new_value = p.run(child_value)
@@ -151,7 +154,7 @@ class P:
                 # as a validator
                 try:
                     processor.processor(value)
-                except Packing as ret:
+                except Excp as ret:
                     return ret
                 except Exception:
                     return BaseError.FIELD_VALIDATOR('%s(%s)校验函数崩溃' %
@@ -160,15 +163,12 @@ class P:
                 # as a processor
                 try:
                     ret = processor.processor(value)
-                except Packing as ret:
+                except Excp as ret:
                     return ret
                 except Exception:
                     return BaseError.FIELD_PROCESSOR('%s(%s)处理函数崩溃' %
                                                      (self.name, self.read_name))
                 yield_name = processor.yield_name or yield_name
-                if isinstance(ret, Packing):
-                    value = ret.body
-                else:
-                    value = ret
+                value = ret
 
         return yield_name, value
