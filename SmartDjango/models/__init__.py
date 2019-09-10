@@ -2,6 +2,7 @@ from .manager import Manager
 from .query import QuerySet
 from .base import Model
 from .pager import Pager, Page
+from .fields import *  # NOQA
 from .fields import __all__ as fields_all
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -17,7 +18,6 @@ from django.db.models.expressions import (
     Case, Exists, Expression, ExpressionList, ExpressionWrapper, F, Func,
     OuterRef, RowRange, Subquery, Value, ValueRange, When, Window, WindowFrame,
 )
-from django.db.models.fields import *  # NOQA
 from django.db.models.fields.files import FileField, ImageField
 from django.db.models.fields.proxy import OrderWrt
 from django.db.models.indexes import *  # NOQA

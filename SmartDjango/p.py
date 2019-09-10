@@ -4,7 +4,7 @@ from django.db import models
 
 from .excp import Excp
 from .error import BaseError
-from . import models as sd_models
+from .models import Model
 
 
 class P:
@@ -93,7 +93,7 @@ class P:
     def from_field(field: models.Field) -> 'P':
         p = P(field.name, read_name=field.verbose_name)
         p.null = field.null
-        p.validate(sd_models.Model.field_validator(field))
+        p.validate(Model.field_validator(field))
         return p
 
     @staticmethod

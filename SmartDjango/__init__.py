@@ -4,10 +4,10 @@ from .error import ETemplate, ErrorCenter, BaseError, EInstance, E
 from .attribute import Attribute
 from .analyse import Analyse, AnalyseError
 
+Param = P
+
 __all__ = [
-    P,
-    Excp,
+    P, Param, Excp,
     ETemplate, E, EInstance, ErrorCenter, BaseError,
-    Attribute,
-    Analyse, AnalyseError
+    Attribute, Analyse, AnalyseError
 ]
