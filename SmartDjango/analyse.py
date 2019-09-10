@@ -25,6 +25,8 @@ class Analyse:
         if not param_list:
             return result
         for param in param_list:
+            if isinstance(param, str):
+                param = Param(param)
             if isinstance(param, Param):
                 value = param_dict.get(param.name)
                 ret = param.run(value)
@@ -61,35 +63,35 @@ class Analyse:
         """
         def decorator(func):
             @wraps(func)
-            def wrapper(request, *args, **kwargs):
-                if not isinstance(request, HttpRequest):
+            def wrapper(r, *args, **kwargs):
+                if not isinstance(r, HttpRequest):
                     return AnalyseError.TMP_REQUEST_TYPE
-                if method and method != request.method:
+                if method and method != r.method:
                     return AnalyseError.TMP_METHOD_NOT_MATCH
                 param_dict = dict()
 
-                request.a_dict = get_arg_dict(func, args, kwargs)
-                ret = cls._validate_params(a, request.a_dict)
+                r.a_dict = get_arg_dict(func, args, kwargs)
+                ret = cls._validate_params(a, r.a_dict)
                 if not ret.ok:
                     return ret
                 param_dict.update(ret.body or {})
 
-                request.q_dict = request.GET.dict() or {}
-                ret = cls._validate_params(q, request.q_dict)
+                r.q_dict = r.GET.dict() or {}
+                ret = cls._validate_params(q, r.q_dict)
                 if not ret.ok:
                     return ret
                 param_dict.update(ret.body or {})
 
                 try:
-                    request.b_dict = json.loads(request.body.decode())
+                    r.b_dict = json.loads(r.body.decode())
                 except json.JSONDecodeError:
-                    request.b_dict = {}
-                ret = cls._validate_params(b, request.b_dict)
+                    r.b_dict = {}
+                ret = cls._validate_params(b, r.b_dict)
                 if not ret.ok:
                     return ret
                 param_dict.update(ret.body or {})
-                request.d = Param.Classify(param_dict)
-                return func(request, *args, **kwargs)
+                r.d = Param.Classify(param_dict)
+                return func(r, *args, **kwargs)
 
             return wrapper
 

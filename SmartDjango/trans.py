@@ -1,5 +1,4 @@
 import gettext
-import os
 
 
 class Translator:

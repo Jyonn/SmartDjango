@@ -75,7 +75,7 @@ class Param:
             return copied_param.clone()
 
     def clone(self):
-        param = Param(self.name, self.verbose_name)
+        param = Param(self.name, self.verbose_name, self.yield_name)
         param.default_value = self.default_value
         param.allow_null = self.allow_null
         param.is_array = self.is_array
