@@ -50,6 +50,9 @@ class P:
 
         self.processors = []  # type: List[P.Processor]
 
+    def __str__(self):
+        return 'Param(%s, %s)' % (self.name, self.read_name)
+
     def set_null(self, null: bool):
         self.null = null
         return self

@@ -30,13 +30,13 @@ class Constraint:
                 field.name, field.verbose_name, max_
             ))
         if min_ and min_ > self.compare(value):
-            return BaseError.FIELD_FORMAT((self.error_template % '小雨').format(
+            return BaseError.FIELD_FORMAT((self.error_template % '小于').format(
                 field.name, field.verbose_name, min_
             ))
 
 
 CONSTRAINTS = [
-    Constraint(fields.CharField, str),
+    Constraint(fields.CharField, str, compare=lambda x: len(x), template=Constraint.LENGTH_T),
     Constraint(fields.IntegerField, int),
     Constraint(fields.FloatField, float),
     Constraint(fields.BooleanField, bool, boundary=False),
