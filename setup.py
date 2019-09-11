@@ -2,10 +2,10 @@ from setuptools import setup, find_packages
 
 setup(
     name='SmartDjango',
-    version='3.0.7 alpha',
+    version='3.1.0',
     keywords=('django',),
     description='更高效率的Django开发[Chinese Version]',
-    long_description='提供智能模型用于字段检测，函数返回类，错误类等',
+    long_description='提供智能模型用于字段检测，数据检索，错误类等',
     license='MIT Licence',
     url='https://github.com/lqj679ssn/SmartDjango',
     author='Adel Liu',

@@ -49,6 +49,8 @@ class Excp(Exception):
     def erroris(self, e):
         return self.error.e.eid == e.eid
 
+    eis = erroris
+
     @staticmethod
     def pack(func):
         @wraps(func)

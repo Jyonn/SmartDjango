@@ -69,7 +69,7 @@ class Model(models.Model):
         return cls.get_fields(field_name)[0]
 
     @classmethod
-    def get_params(cls, *field_names: str) -> Tuple['P']:
+    def get_params(cls, *field_names: str):
         from ..p import P
         return P.from_fields(*cls.get_fields(*field_names))
 
