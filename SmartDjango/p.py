@@ -53,11 +53,16 @@ class P:
     def __str__(self):
         return 'Param(%s, %s)' % (self.name, self.read_name)
 
-    def set_null(self, null: bool):
+    def rename(self, name: str, read_name: Optional[str] = None):
+        self.name = name
+        self.read_name = read_name or name
+        return self
+
+    def set_null(self, null: bool = True):
         self.null = null
         return self
 
-    def set_default(self, value: Any = None, allow_default=True):
+    def set_default(self, value: Any = None, allow_default = True):
         if allow_default:
             self.default = value
         else:
