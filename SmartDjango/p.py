@@ -127,11 +127,13 @@ class P:
 
     @Excp.pack
     def run(self, value):
+        yield_name = self.name
+
         if value is None:
             if self.null:
-                return None
+                return yield_name, None
             if self.has_default():
-                value = self.default
+                value = yield_name, self.default
             else:
                 return BaseError.MISS_PARAM((self.name, self.read_name))
 
@@ -156,7 +158,6 @@ class P:
                 new_value.append(child_new_value)
             value = new_value
 
-        yield_name = self.name
         for processor in self.processors:
             if processor.only_validate:
                 # as a validator
