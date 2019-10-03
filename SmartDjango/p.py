@@ -62,7 +62,7 @@ class P:
         self.null = null
         return self
 
-    def set_default(self, value: Any = None, allow_default = True):
+    def set_default(self, value: Any = None, allow_default: bool = True):
         if allow_default:
             self.default = value
         else:
@@ -105,7 +105,7 @@ class P:
         return p
 
     @staticmethod
-    def from_fields(*fields: models.Field) -> Tuple['P']:
+    def from_fields(*fields: models.Field):
         return tuple(map(P.from_field, fields))
 
     def clone(self):
@@ -133,7 +133,7 @@ class P:
             if self.null:
                 return yield_name, None
             if self.has_default():
-                value = yield_name, self.default
+                return yield_name, self.default
             else:
                 return BaseError.MISS_PARAM((self.name, self.read_name))
 

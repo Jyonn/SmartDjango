@@ -65,9 +65,12 @@ class Excp(Exception):
     @staticmethod
     def handle(func):
         @wraps(func)
-        def wrapper(request, *args, **kwargs):
+        def wrapper(r, *args, **kwargs):
             try:
-                ret = Excp(func(request, *args, **kwargs))
+                ret = func(r, *args, **kwargs)
+                if isinstance(ret, HttpResponse):
+                    return ret
+                ret = Excp(ret)
             except Excp as e:
                 ret = e
             return Excp.http_response(ret)
