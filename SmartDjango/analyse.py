@@ -58,27 +58,27 @@ class Analyse:
         """
         def decorator(func):
             @wraps(func)
-            def wrapper(r: HttpRequest, *args, **kwargs):
+            def wrapper(r: HttpRequest, **kwargs):
                 if method and method != r.method:
                     return AnalyseError.TMP_METHOD_NOT_MATCH
                 param_jar = dict()
 
-                r.a_dict = get_arg_dict(func, args, kwargs)
-                result = cls.process_params(a, r.a_dict)
+                a_dict = kwargs or {}
+                result = cls.process_params(a, a_dict)
                 param_jar.update(result or {})
 
-                r.q_dict = r.GET.dict() or {}
-                result = cls.process_params(q, r.q_dict)
+                q_dict = r.GET.dict() or {}
+                result = cls.process_params(q, q_dict)
                 param_jar.update(result or {})
 
                 try:
-                    r.b_dict = json.loads(r.body.decode())
+                    b_dict = json.loads(r.body.decode())
                 except json.JSONDecodeError:
-                    r.b_dict = {}
-                result = cls.process_params(b, r.b_dict)
+                    b_dict = {}
+                result = cls.process_params(b, b_dict)
                 param_jar.update(result or {})
                 r.d = P.Classify(param_jar)
-                return func(r, *args, **kwargs)
+                return func(r)
 
             return wrapper
 
