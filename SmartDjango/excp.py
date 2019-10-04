@@ -3,6 +3,7 @@ from functools import wraps
 
 from django.http import HttpResponse
 
+from .middleware import HttpPackMiddleware
 from .error import BaseError, ETemplate, EInstance, ErrorCenter
 
 
@@ -62,19 +63,20 @@ class Excp(Exception):
             return ret
         return wrapper
 
-    @staticmethod
-    def handle(func):
-        @wraps(func)
-        def wrapper(r, *args, **kwargs):
-            try:
-                ret = func(r, *args, **kwargs)
-                if isinstance(ret, HttpResponse):
-                    return ret
-                ret = Excp(ret)
-            except Excp as e:
-                ret = e
-            return Excp.http_response(ret)
-        return wrapper
+    # @staticmethod
+    # def handle(func):
+    #     @wraps(func)
+    #     def wrapper(r, *args, **kwargs):
+    #         try:
+    #             ret = func(r, *args, **kwargs)
+    #             if isinstance(ret, HttpResponse):
+    #                 return ret
+    #             ret = Excp(ret)
+    #         except Excp as e:
+    #             ret = e
+    #         return Excp.http_response(ret)
+    #     return wrapper
+    handle = HttpPackMiddleware
 
     @staticmethod
     def http_response(o):
