@@ -11,7 +11,10 @@ class HttpPackMiddleware:
         try:
             ret = self.get_response(r, *args, **kwargs)
             if isinstance(ret, HttpResponse):
-                return ret
+                if not ret.content.decode().find(
+                        "didn't return an HttpResponse object. It returned None instead."):
+                    return ret
+                ret = None
             ret = Excp(ret)
         except Excp as e:
             ret = e
