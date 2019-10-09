@@ -57,12 +57,17 @@ class Analyse:
         """
         def decorator(func):
             @wraps(func)
-            def wrapper(**kwargs):
+            def wrapper(*args, **kwargs):
                 r = None
-                for k in kwargs:
-                    if isinstance(kwargs[k], HttpRequest):
-                        r = kwargs[k]
+                for v in args:
+                    if isinstance(v, HttpRequest):
+                        r = v
                         break
+                if not r:
+                    for k in kwargs:
+                        if isinstance(kwargs[k], HttpRequest):
+                            r = kwargs[k]
+                            break
                 if not r:
                     return AnalyseError.AE_REQUEST_NOT_FOUND
                 if method and method != r.method:

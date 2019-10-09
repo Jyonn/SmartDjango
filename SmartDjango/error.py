@@ -100,6 +100,7 @@ class ErrorJar:
                     e.class_ = class_
                     cls.d[k] = e
                     cls.d_i[e.eid] = k
+        return class_
 
 
 @ErrorJar.pour
