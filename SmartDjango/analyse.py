@@ -5,15 +5,14 @@ from django.http import HttpRequest
 
 from .p import P
 from .excp import Excp
-from .error import ErrorCenter, E
+from .error import ErrorJar, E
 from .arg import get_arg_dict
 
 
-class AnalyseError(ErrorCenter):
-    TMP_METHOD_NOT_MATCH = E("请求方法错误", hc=400)
-
-
-AnalyseError.register()
+@ErrorJar.pour
+class AnalyseError:
+    AE_METHOD_NOT_MATCH = E("请求方法错误", hc=400)
+    AE_REQUEST_NOT_FOUND = E("找不到请求", hc=500)
 
 
 class Analyse:
@@ -58,9 +57,16 @@ class Analyse:
         """
         def decorator(func):
             @wraps(func)
-            def wrapper(r: HttpRequest, **kwargs):
+            def wrapper(**kwargs):
+                r = None
+                for k in kwargs:
+                    if isinstance(kwargs[k], HttpRequest):
+                        r = kwargs[k]
+                        break
+                if not r:
+                    return AnalyseError.AE_REQUEST_NOT_FOUND
                 if method and method != r.method:
-                    return AnalyseError.TMP_METHOD_NOT_MATCH
+                    return AnalyseError.AE_METHOD_NOT_MATCH
                 param_jar = dict()
 
                 a_dict = kwargs or {}
