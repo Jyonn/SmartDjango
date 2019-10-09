@@ -1,4 +1,4 @@
-from typing import Dict, ClassVar
+from typing import Dict
 
 
 class ETemplate:
@@ -22,7 +22,7 @@ class ETemplate:
         self.ph = ph
         self.eid = ETemplate._id
         self.hc = hc  # http code
-        self.class_ = None  # type: ClassVar
+        self.class_ = None
 
         ETemplate._id += 1
 
@@ -35,6 +35,10 @@ class ETemplate:
     def dictor(self):
         from SmartDjango import Attribute
         return Attribute.dictor(self, 'msg', 'eid')
+
+    @staticmethod
+    def register(error_class):
+        return ErrorJar.pour(error_class)
 
 
 class EInstance:
@@ -96,7 +100,8 @@ class ErrorJar:
                 if isinstance(e, ETemplate):
                     if k in cls.d:
                         raise AttributeError(
-                            '错误ID冲突，{0}在{1}中已存在'.format(k, cls.d[k].class_.__name__))
+                            '错误ID冲突，{0}在{1}和{2}中都存在'.format(
+                                k, cls.d[k].class_.__name__, class_.__name__))
                     e.class_ = class_
                     cls.d[k] = e
                     cls.d_i[e.eid] = k
