@@ -78,7 +78,7 @@ class Excp(Exception):
             msg=error.get_msg(),
             body=ret.body,
         )
-        if using_data_packer:
+        if using_data_packer and cls.data_packer:
             try:
                 resp = cls.data_packer(resp)
             except Exception:

@@ -9,7 +9,7 @@ Param = P
 
 __all__ = [
     P, Param, Excp,
-    ETemplate, E, EI, EInstance, ErrorJar, BaseError,
+    ETemplate, E, EI, EInstance, ErrorJar, BaseError, ErrorJar,
     Attribute, Analyse, AnalyseError,
     HC, HttpCode,
 ]
