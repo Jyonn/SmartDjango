@@ -61,9 +61,10 @@ class P:
     def __str__(self):
         return 'Param(%s, %s)' % (self.name, self.read_name)
 
-    def rename(self, name: str, read_name: Optional[str] = None):
+    def rename(self, name: str, read_name: str = None, yield_name: str = None):
         self.name = name
         self.read_name = read_name or name
+        self.yield_name = yield_name or name
         return self
 
     def set_null(self, null: bool = True):
