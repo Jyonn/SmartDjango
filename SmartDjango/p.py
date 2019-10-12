@@ -61,10 +61,11 @@ class P:
     def __str__(self):
         return 'Param(%s, %s)' % (self.name, self.read_name)
 
-    def rename(self, name: str, read_name: str = None, yield_name: str = None):
+    def rename(self, name: str, read_name: str = None, yield_name: str = None,
+               stay_none: bool = False):
         self.name = name
-        self.read_name = read_name or name
-        self.yield_name = yield_name or name
+        self.read_name = read_name or (self.read_name if stay_none else name)
+        self.yield_name = yield_name or (self.yield_name if stay_none else name)
         return self
 
     def set_null(self, null: bool = True):
@@ -119,7 +120,7 @@ class P:
         return tuple(map(P.from_field, fields))
 
     def clone(self):
-        p = P(self.name, self.read_name)
+        p = P(self.name, self.read_name, self.yield_name)
 
         p.null = self.null
         p.default = self.default
