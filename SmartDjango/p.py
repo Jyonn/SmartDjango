@@ -1,4 +1,4 @@
-from typing import Optional, Any, List, Callable, Tuple, Union
+from typing import Optional, Any, List, Callable, Union
 
 from django.db import models
 
@@ -8,6 +8,9 @@ from .models import Model
 
 
 class P:
+    """
+    参数类，用于对函数参数的检测
+    """
     class __NoDefault:
         pass
 
@@ -37,12 +40,17 @@ class P:
             self.only_validate = only_validate
             self.yield_name = yield_name
 
-    def __init__(self, name: str, read_name: Optional[str] = None):
-        self.name = name  # type:
-        self.read_name = read_name or name
+    def __init__(self,
+                 name: str,
+                 read_name: Optional[str] = None,
+                 yield_name: Optional[str] = None):
+        self.name = name  # 参数名称
+        self.read_name = read_name or name  # 参数可读名称
+        self.yield_name = yield_name or name  # 参数返回名称，等级小于Processor的yield_name
 
         self.null = False  # type: bool
         self.default = self.__NoDefault()  # type: Any
+        self.default_through_processor = False
 
         self.dict = False  # type: bool
         self.list = False  # type: bool
@@ -53,20 +61,23 @@ class P:
     def __str__(self):
         return 'Param(%s, %s)' % (self.name, self.read_name)
 
-    def rename(self, name: str, read_name: Optional[str] = None):
+    def rename(self, name: str, read_name: str = None, yield_name: str = None,
+               stay_none: bool = False):
         self.name = name
-        self.read_name = read_name or name
+        self.read_name = read_name or (self.read_name if stay_none else name)
+        self.yield_name = yield_name or (self.yield_name if stay_none else name)
         return self
 
     def set_null(self, null: bool = True):
         self.null = null
         return self
 
-    def set_default(self, value: Any = None, allow_default: bool = True):
+    def set_default(self, value: Any = None, allow_default: bool = True, through_processor=False):
         if allow_default:
             self.default = value
         else:
             self.default = self.__NoDefault()
+        self.default_through_processor = through_processor
         return self
 
     def as_dict(self, *children: Union['P', str]):
@@ -109,7 +120,7 @@ class P:
         return tuple(map(P.from_field, fields))
 
     def clone(self):
-        p = P(self.name, self.read_name)
+        p = P(self.name, self.read_name, self.yield_name)
 
         p.null = self.null
         p.default = self.default
@@ -127,13 +138,16 @@ class P:
 
     @Excp.pack
     def run(self, value):
-        yield_name = self.name
+        yield_name = self.yield_name
 
         if value is None:
             if self.null:
                 return yield_name, None
             if self.has_default():
-                return yield_name, self.default
+                if not self.default_through_processor:
+                    return yield_name, self.default
+                else:
+                    value = self.default
             else:
                 return BaseError.MISS_PARAM((self.name, self.read_name))
 

@@ -3,10 +3,14 @@ from functools import wraps
 
 from django.http import HttpResponse
 
-from .error import BaseError, ETemplate, EInstance, ErrorCenter
+from .middleware import HttpPackMiddleware
+from .error import BaseError, ETemplate, EInstance, ErrorJar
 
 
 class Excp(Exception):
+    http_response_always = False
+    data_packer = None
+
     """
     函数返回类（规范）
     用于模型方法、路由控制方法等几乎所有函数中
@@ -62,41 +66,30 @@ class Excp(Exception):
             return ret
         return wrapper
 
-    @staticmethod
-    def handle(func):
-        @wraps(func)
-        def wrapper(r, *args, **kwargs):
-            try:
-                ret = func(r, *args, **kwargs)
-                if isinstance(ret, HttpResponse):
-                    return ret
-                ret = Excp(ret)
-            except Excp as e:
-                ret = e
-            return Excp.http_response(ret)
-        return wrapper
+    handle = HttpPackMiddleware
 
-    @staticmethod
-    def http_response(o):
+    @classmethod
+    def http_response(cls, o, using_data_packer=True):
         ret = Excp(o)
         error = ret.error
-        if error.append_msg:
-            if error.e.ph == ETemplate.PH_NONE:
-                msg = error.e.msg + '，%s' % error.append_msg
-            elif error.e.ph == ETemplate.PH_FORMAT:
-                msg = error.e.msg.format(*error.append_msg)
-            else:
-                msg = error.e.msg % error.append_msg
-        else:
-            msg = error.e.msg
         resp = dict(
-            identifier=ErrorCenter.r_get(error.e.eid),
+            identifier=ErrorJar.get_i(error),
             code=error.e.eid,
-            msg=msg,
+            msg=error.get_msg(),
             body=ret.body,
         )
+        if using_data_packer and cls.data_packer:
+            try:
+                resp = cls.data_packer(resp)
+            except Exception:
+                return cls.http_response(BaseError.HTTP_DATA_PACKER, using_data_packer=False)
         return HttpResponse(
             json.dumps(resp, ensure_ascii=False),
-            status=error.e.hc,
+            status=cls.http_response_always or error.e.hc,
             content_type="application/json; encoding=utf-8",
         )
+
+    @classmethod
+    def custom_http_response(cls, http_code_always=None, data_packer=None):
+        cls.http_response_always = int(http_code_always)
+        cls.data_packer = data_packer if callable(data_packer) else None

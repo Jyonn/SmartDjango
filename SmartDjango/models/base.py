@@ -147,5 +147,5 @@ class Model(models.Model):
                     except Exception:
                         return BaseError.FIELD_VALIDATOR('%s校验函数崩溃' % attr)
 
-    def dictor(self, field_list):
-        return Attribute.dictor(self, field_list)
+    def dictor(self, *field_list):
+        return Attribute.dictor(self, *field_list)

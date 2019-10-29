@@ -1,6 +1,6 @@
 class Attribute:
     @staticmethod
-    def dictor(o, field_list):
+    def dictor(o, *field_list):
         d = dict()
         for field_name in field_list:
             if isinstance(field_name, tuple):
