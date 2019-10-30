@@ -33,8 +33,8 @@ The latest version is `3.5.1`, building on 29th Oct, 2019. It requires
 Current Version is based on Chinese, as you can see in some readable
 errors.
 
-*`error.py`*
-```
+`error.py`
+```python
 class BaseError:
     OK = E("没有错误", hc=200)
     FIELD_VALIDATOR = E("字段校验器错误", hc=500)
@@ -62,7 +62,7 @@ configured.**
 JSON is a popular format for data transferring. The following code is
 usually used to pack dict data to HTTPResponse object:
 
-```
+```python
 def handler(r):
     data = get_data()  # type: dict
     return HttpResponse(
@@ -73,7 +73,7 @@ def handler(r):
 
 or an easier way:
 
-```
+```python
 def handler(r):
     data = get_data()  # type: dict
     return JsonResponse(data)
@@ -81,7 +81,7 @@ def handler(r):
 
 Now it's the easiest way:
 
-```
+```python
 def handler(r):
     data = get_data()  # type: dict
     return data
@@ -91,7 +91,7 @@ You may have dozens of handlers, but you don't need to write dozens of
 `JsonResponse`. What's all you need is to append a single line in
 `MIDDLEWARES` in setting file like this:
 
-```
+```python
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     ...
@@ -290,7 +290,7 @@ The next magic is `models.dictor`.
 
 It would be very boring to write something like this:
 
-```
+```python
 def d(self):
     return dict(
         id=self.pk,
@@ -393,7 +393,7 @@ You might think the second method is stupid in some kind, but it's an
 usual phenomenon. Think about it:
 
 `models.py`
-```
+```python
 class SomeModel(models.Model):
     time = models.DatetimeField(...)
     
