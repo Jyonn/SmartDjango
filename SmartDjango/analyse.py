@@ -57,7 +57,7 @@ class Analyse(BAnalyse):
                         if isinstance(check[0], P):
                             p = check[0]
                         else:
-                            p = PDict().set_fields(check[0])
+                            p = PDict().set_fields(*check[0])
                         _, result = p.run(check[1])
                         param_jar.update(result or {})
 
