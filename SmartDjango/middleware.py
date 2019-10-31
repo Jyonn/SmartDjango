@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from smartify import E
 
 
 class HttpPackMiddleware:
@@ -6,23 +7,25 @@ class HttpPackMiddleware:
         self.get_response = get_response
 
     def __call__(self, r, *args, **kwargs):
-        from .excp import Excp
-
         try:
-            ret = self.get_response(r, *args, **kwargs)
-            if isinstance(ret, HttpResponse):
-                if ret.content.decode().find(
+            e = self.get_response(r, *args, **kwargs)
+            if isinstance(e, HttpResponse):
+                if e.content.decode().find(
                         "t return an HttpResponse object. It returned None instead.") == -1:
-                    return ret
-                ret = None
-            ret = Excp(ret)
-        except Excp as e:
-            ret = e
-        return Excp.http_response(ret)
+                    return e
+                e = None
+            if isinstance(e, E):
+                raise e
+        except E as err:
+            e = err
 
-    def process_exception(self, r, excp):
         from .excp import Excp
-        if isinstance(excp, Excp):
-            return Excp.http_response(excp)
+        return Excp.http_response(e)
+
+    def process_exception(self, r, e):
+        from .excp import Excp
+
+        if isinstance(e, E):
+            return Excp.http_response(e)
         else:
             return None

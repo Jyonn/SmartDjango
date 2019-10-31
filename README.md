@@ -147,14 +147,12 @@ class User(models.Model):
     ...
     
     @staticmethod
-    @Excp.pack
     def _valid_username(username: str):
         for c in username:
             if not 'a' < c.lower() < 'z':
-                return UserError.USERNAME_ALPHA  # or raise
+                raise UserError.USERNAME_ALPHA  # or raise
                 
     @classmethod
-    @Excp.pack
     def new(cls, username, password):
         cls.validator(locals())
         

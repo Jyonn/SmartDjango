@@ -2,90 +2,57 @@ import json
 from functools import wraps
 
 from django.http import HttpResponse
+from smartify import BaseError
 
 from .middleware import HttpPackMiddleware
-from .error import BaseError, ETemplate, EInstance, ErrorJar
+from .error import E
 
 
-class Excp(Exception):
+@E.register()
+class ExcpError:
+    HTTP_DATA_PACKER = E("Http data packer crashed")
+
+
+class Excp:
     http_response_always = False
     data_packer = None
-
-    """
-    函数返回类（规范）
-    用于模型方法、路由控制方法等几乎所有函数中
-    """
-
-    def __init__(self, *args, **kwargs):
-        """
-        函数返回类构造器，根据变量个数判断
-        """
-        if not args:
-            self.error = BaseError.OK
-        else:
-            arg = args[0]
-            if isinstance(arg, ETemplate):
-                self.error = arg()
-            elif isinstance(arg, EInstance):
-                self.error = arg
-            elif isinstance(arg, Excp):
-                self.error = arg.error
-                self.body = arg.body
-                self.extend = arg.extend
-            else:
-                self.error = BaseError.OK()
-                self.body = args[0]
-        self.extend = self.extend or kwargs
-
-    def __getattribute__(self, item):
-        try:
-            return object.__getattribute__(self, item)
-        except AttributeError:
-            return None
-
-    def __str__(self):
-        return 'Ret(error=%s, body=%s, extend=%s)' % (self.error, self.body, self.extend)
-
-    @property
-    def ok(self):
-        return self.error.e.eid == BaseError.OK.eid
-
-    def erroris(self, e):
-        return self.error.e.eid == e.eid
-
-    eis = erroris
 
     @staticmethod
     def pack(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            ret = func(*args, **kwargs)
-            excp = Excp(ret)
-            if not excp.ok:
-                raise excp
-            return ret
+            e = func(*args, **kwargs)
+            if isinstance(e, E):
+                raise e
+            return e
         return wrapper
 
     handle = HttpPackMiddleware
 
     @classmethod
     def http_response(cls, o, using_data_packer=True):
-        ret = Excp(o)
-        error = ret.error
+        if isinstance(o, E):
+            body = None
+            e = o
+        else:
+            body = o
+            e = BaseError.OK()
         resp = dict(
-            identifier=ErrorJar.get_i(error),
-            code=error.e.eid,
-            msg=error.get_msg(),
-            body=ret.body,
+            identifier=e.identifier,
+            code=e.eid,
+            msg=e.message,
+            body=body,
         )
         if using_data_packer and cls.data_packer:
             try:
                 resp = cls.data_packer(resp)
-            except Exception:
-                return cls.http_response(BaseError.HTTP_DATA_PACKER, using_data_packer=False)
+            except Exception as err:
+                return cls.http_response(
+                    ExcpError.HTTP_DATA_PACKER(debug_message=err), using_data_packer=False)
+
         return HttpResponse(
             json.dumps(resp, ensure_ascii=False),
-            status=cls.http_response_always or error.e.hc,
+            status=cls.http_response_always or e.hc,
             content_type="application/json; encoding=utf-8",
         )
 

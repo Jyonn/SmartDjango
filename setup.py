@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='SmartDjango',
-    version='3.5.1',
+    version='3.6.0 alpha1',
     keywords=('django',),
     description='更高效率的Django开发[Chinese Version]',
     long_description='提供智能模型用于字段检测，数据检索，错误类等',
@@ -14,5 +14,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         'django>=2.2.5',
+        'smartify',
     ],
 )
