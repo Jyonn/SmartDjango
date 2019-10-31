@@ -15,6 +15,7 @@ class ExcpError:
 
 class Excp:
     http_response_always = False
+    _debug_status = True
     data_packer = None
 
     @staticmethod
@@ -43,6 +44,9 @@ class Excp:
             msg=e.message,
             body=body,
         )
+        if cls._debug_status:
+            resp.update(dict(debug_msg=e.debug_message))
+
         if using_data_packer and cls.data_packer:
             try:
                 resp = cls.data_packer(resp)
@@ -60,3 +64,7 @@ class Excp:
     def custom_http_response(cls, http_code_always=None, data_packer=None):
         cls.http_response_always = int(http_code_always)
         cls.data_packer = data_packer if callable(data_packer) else None
+
+    @classmethod
+    def debugging(cls, off=False):
+        cls._debug_status = not off
