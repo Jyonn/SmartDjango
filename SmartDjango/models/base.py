@@ -72,8 +72,7 @@ class Model(models.Model):
 
     @classmethod
     def get_params(cls, *field_names: str):
-        _fields = cls.get_fields(*field_names)
-        return tuple(map(cls.get_param, _fields))
+        return tuple(map(cls.get_param, field_names))
 
     @classmethod
     def get_param(cls, field_name):
