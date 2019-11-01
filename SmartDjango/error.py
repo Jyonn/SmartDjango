@@ -3,8 +3,8 @@ from smartify import E as BE, Attribute, BaseError, PError
 
 
 class E(BE):
-    def __init__(self, message: str, hc=Hc.OK):
-        super(E, self).__init__(message)
+    def __init__(self, template: str, hc=Hc.OK, **kwargs):
+        super(E, self).__init__(template, **kwargs)
         self.hc = hc
 
     def d(self):
