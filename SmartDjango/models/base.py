@@ -78,7 +78,7 @@ class Model(models.Model):
     def get_param(cls, field_name):
         field = cls.get_field(field_name)
         p = P(field.name, read_name=field.verbose_name)
-        p.null = field.null
+        p.allow_null = field.null
         p.validate(Model.field_validator(field))
         return p
 
