@@ -1,26 +1,18 @@
-import json
+import warnings
 from functools import wraps
 
-from django.http import HttpResponse
-from smartify import BaseError
-
+from .net_packer import NetPacker
 from .middleware import HttpPackMiddleware
 from .error import E
-from .http_code import HttpCode as Hc
-
-
-@E.register()
-class ExcpError:
-    HTTP_DATA_PACKER = E("Http data packer crashed", hc=Hc.InternalServerError)
 
 
 class Excp:
-    http_response_always = False
-    _debug_status = True
-    data_packer = None
-
     @staticmethod
     def pack(func):
+        warnings.warn(
+            'Excp.pack is deprecated, use "raise XXError.xx" instead of "return XXError.xx".',
+            DeprecationWarning)
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             e = func(*args, **kwargs)
@@ -29,42 +21,31 @@ class Excp:
             return e
         return wrapper
 
-    handle = HttpPackMiddleware
+    # handle = HttpPackMiddleware
+    @staticmethod
+    def handle(get_response):
+        warnings.warn(
+            'Excp.handle is deprecated, use NetPacker.pack instead.',
+            DeprecationWarning)
+        return HttpPackMiddleware(get_response)
 
     @classmethod
     def http_response(cls, o, using_data_packer=True):
-        if isinstance(o, E):
-            body = None
-            e = o
-        else:
-            body = o
-            e = BaseError.OK()
-
-        if cls._debug_status:
-            resp = e.d_debug()
-        else:
-            resp = e.d()
-
-        resp['body'] = body
-
-        if using_data_packer and cls.data_packer:
-            try:
-                resp = cls.data_packer(resp)
-            except Exception as err:
-                return cls.http_response(
-                    ExcpError.HTTP_DATA_PACKER(debug_message=err), using_data_packer=False)
-
-        return HttpResponse(
-            json.dumps(resp, ensure_ascii=False),
-            status=cls.http_response_always or e.hc,
-            content_type="application/json; encoding=utf-8",
-        )
+        warnings.warn(
+            'Excp.http_response is deprecated, use NetPacker.send instead.',
+            DeprecationWarning)
+        return NetPacker.send(o, using_data_packer=using_data_packer)
 
     @classmethod
     def custom_http_response(cls, http_code_always=None, data_packer=None):
-        cls.http_response_always = int(http_code_always)
-        cls.data_packer = data_packer if callable(data_packer) else None
+        warnings.warn(
+            'Excp.custom_http_response is deprecated, use NetPacker.customize instead.',
+            DeprecationWarning)
+        NetPacker.customize(http_code_always, data_packer)
 
     @classmethod
     def debugging(cls, off=False):
-        cls._debug_status = not off
+        warnings.warn(
+            'Excp.debugging is deprecated, use NetPacker.set_mode instead.',
+            DeprecationWarning)
+        NetPacker.set_mode(debug=not off)

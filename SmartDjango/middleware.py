@@ -19,13 +19,12 @@ class HttpPackMiddleware:
         except E as err:
             e = err
 
-        from .excp import Excp
-        return Excp.http_response(e)
+        from .net_packer import NetPacker
+        return NetPacker.send(e)
 
-    def process_exception(self, r, e):
-        from .excp import Excp
-
+    def process_exception(self, _, e):
+        from .net_packer import NetPacker
         if isinstance(e, E):
-            return Excp.http_response(e)
+            return NetPacker.send(e)
         else:
             return None
