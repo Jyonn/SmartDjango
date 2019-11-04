@@ -6,11 +6,12 @@ from smartify import BaseError
 
 from .middleware import HttpPackMiddleware
 from .error import E
+from .http_code import HttpCode as Hc
 
 
 @E.register()
 class ExcpError:
-    HTTP_DATA_PACKER = E("Http data packer crashed")
+    HTTP_DATA_PACKER = E("Http data packer crashed", hc=Hc.InternalServerError)
 
 
 class Excp:

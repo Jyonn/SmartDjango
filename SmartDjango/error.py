@@ -3,12 +3,19 @@ from smartify import E as BE, Attribute, BaseError, PError
 
 
 class E(BE):
-    def __init__(self, template: str, hc=Hc.OK, **kwargs):
-        super(E, self).__init__(template, **kwargs)
+    def __init__(self, template: str, hc=Hc.OK):
+        super(E, self).__init__(template)
         self.hc = hc
 
     def d(self):
-        return Attribute.dictify(self, 'message->msg', 'eid', 'hc->http_code')
+        dict_ = super(E, self).d()
+        dict_.update(Attribute.dictify('hc->http_code'))
+        return dict_
+
+    def d_debug(self):
+        dict_ = super(E, self).d_debug()
+        dict_.update(Attribute.dictify('hc->http_code'))
+        return dict_
 
 
 def error_update(e: BE, hc=Hc.OK):

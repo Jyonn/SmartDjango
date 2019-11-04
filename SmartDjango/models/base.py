@@ -1,8 +1,10 @@
 import datetime
 from typing import List, Tuple, Optional
 
+from ..error import E
+from ..http_code import HttpCode as Hc
 from django.db import models
-from smartify import Attribute, P, E, PError
+from smartify import Attribute, P, PError
 
 from .manager import Manager
 from . import fields
@@ -10,7 +12,7 @@ from . import fields
 
 @E.register()
 class ModelError:
-    FIELD_FORMAT = E("Field format error, {0}")
+    FIELD_FORMAT = E("Field format error", hc=Hc.Forbidden)
 
 
 class Constraint:
@@ -28,13 +30,11 @@ class Constraint:
         else:
             max_, min_ = field.max_value, field.min_value
         if max_ and max_ < self.compare(value):
-            raise ModelError.FIELD_FORMAT((self.error_template % 'bigger').format(
-                field.name, field.verbose_name, max_
-            ))
+            raise ModelError.FIELD_FORMAT(append_message=(self.error_template % 'bigger').format(
+                field.name, field.verbose_name, max_))
         if min_ and min_ > self.compare(value):
-            raise ModelError.FIELD_FORMAT((self.error_template % 'smaller').format(
-                field.name, field.verbose_name, min_
-            ))
+            raise ModelError.FIELD_FORMAT(append_message=(self.error_template % 'smaller').format(
+                field.name, field.verbose_name, min_))
 
 
 CONSTRAINTS = [
