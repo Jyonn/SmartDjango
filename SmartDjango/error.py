@@ -9,13 +9,12 @@ class E(BE):
 
     def d(self):
         dict_ = super(E, self).d()
-        dict_.update(Attribute.dictify('hc->http_code'))
+        dict_.update(Attribute.dictify(self, 'hc->http_code', 'eid->code'))
+        del dict_['eid']
         return dict_
 
     def d_debug(self):
-        dict_ = super(E, self).d_debug()
-        dict_.update(Attribute.dictify('hc->http_code'))
-        return dict_
+        return super(E, self).d_debug()
 
 
 def error_update(e: BE, hc=Hc.OK):

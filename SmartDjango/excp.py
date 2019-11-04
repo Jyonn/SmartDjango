@@ -39,14 +39,13 @@ class Excp:
         else:
             body = o
             e = BaseError.OK()
-        resp = dict(
-            identifier=e.identifier,
-            code=e.eid,
-            msg=e.message,
-            body=body,
-        )
+
         if cls._debug_status:
-            resp.update(dict(debug_msg=e.debug_message))
+            resp = e.d_debug()
+        else:
+            resp = e.d()
+
+        resp['body'] = body
 
         if using_data_packer and cls.data_packer:
             try:

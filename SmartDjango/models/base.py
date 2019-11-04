@@ -94,7 +94,8 @@ class Model(models.Model):
             for constraint in CONSTRAINTS:
                 if isinstance(field, constraint.field):
                     if not isinstance(value, constraint.type):
-                        raise ModelError.FIELD_FORMAT('%s(%s) has wrong type' % (attr, verbose))
+                        raise ModelError.FIELD_FORMAT(
+                            append_message='%s(%s) has wrong type' % (attr, verbose))
                     if constraint.boundary:
                         constraint.fit(field, value)
                     break
@@ -106,7 +107,8 @@ class Model(models.Model):
                         choice_match = True
                         break
                 if not choice_match:
-                    raise ModelError.FIELD_FORMAT('%s(%s) is beyond choices' % (attr, verbose))
+                    raise ModelError.FIELD_FORMAT(
+                        append_message='%s(%s) is beyond choices' % (attr, verbose))
 
             custom_validator = getattr(cls, '_valid_%s' % attr, None)
             if callable(custom_validator):
