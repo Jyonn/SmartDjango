@@ -1,4 +1,5 @@
 import datetime
+import warnings
 from typing import List, Tuple, Optional
 
 from ..error import E
@@ -152,4 +153,10 @@ class Model(models.Model):
                         raise PError.VALIDATOR_CRUSHED(attr, attr, debug_message=str(err))
 
     def dictor(self, *field_list):
+        warnings.warn(
+            'dictor method is deprecated, use dictify instead.',
+            DeprecationWarning)
+        return self.dictify(*field_list)
+
+    def dictify(self, *field_list):
         return Attribute.dictify(self, *field_list)
