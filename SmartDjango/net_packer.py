@@ -35,16 +35,27 @@ class NetPacker:
             except Exception as err:
                 return cls.send(
                     PackerError.HTTP_DATA_PACKER(debug_message=err), using_data_packer=False)
+        else:
+            resp = json.dumps(resp, ensure_ascii=False)
 
-        return HttpResponse(
-            json.dumps(resp, ensure_ascii=False),
+        response = HttpResponse(
+            resp,
             status=cls.fixed_code or e.hc,
             content_type="application/json; encoding=utf-8",
         )
+        return response
 
     @classmethod
     def customize(cls, fixed_http_code=None, data_packer=None):
-        cls.fixed_code = int(fixed_http_code)
+        cls.fixed_code = int(fixed_http_code) if fixed_http_code else None
+        cls.data_packer = data_packer if callable(data_packer) else None
+
+    @classmethod
+    def customize_http_code(cls, fixed_http_code=None):
+        cls.fixed_code = int(fixed_http_code) if fixed_http_code else None
+
+    @classmethod
+    def customize_data_packer(cls, data_packer=None):
         cls.data_packer = data_packer if callable(data_packer) else None
 
     @classmethod

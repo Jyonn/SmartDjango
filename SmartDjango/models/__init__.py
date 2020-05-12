@@ -2,7 +2,7 @@ from .manager import Manager
 from .query import QuerySet
 from .base import Model
 from .pager import Pager, Page
-from .cenum import CEnum
+from .cenum import CEnum, CREnum
 from .fields import *  # NOQA
 from .fields import __all__ as fields_all
 
