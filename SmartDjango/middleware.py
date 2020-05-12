@@ -1,3 +1,5 @@
+import warnings
+
 from django.http import HttpResponse
 from smartify import E
 
@@ -12,6 +14,7 @@ class HttpPackMiddleware:
             if isinstance(e, HttpResponse):
                 if e.content.decode().find(
                         "t return an HttpResponse object. It returned None instead.") == -1:
+                    warnings.warn('Please return a Not-None value', DeprecationWarning)
                     return e
                 e = None
             if isinstance(e, E):
