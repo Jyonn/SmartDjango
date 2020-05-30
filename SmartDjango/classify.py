@@ -10,7 +10,10 @@ class Classify:
     def __init__(self, d):
         if not isinstance(d, dict):
             return
-        self._dict = d
+        object.__setattr__(self, '_dict', d)
 
     def __getattr__(self, item):
         return self._dict.get(item)
+
+    def __setattr__(self, key, value):
+        self._dict[key] = value

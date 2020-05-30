@@ -7,9 +7,9 @@ class Page:
         self.next_value = next_value
         self.total_count = total_count
 
-    def dict(self, object_dictor=None, next_dictor=None):
+    def dict(self, *args, object_dictor=None, next_dictor=None):
         if callable(object_dictor):
-            object_list = list(map(object_dictor, self.object_list))
+            object_list = list(map(lambda x: object_dictor(x, *args), self.object_list))
         else:
             object_list = self.object_list
         if callable(next_dictor):

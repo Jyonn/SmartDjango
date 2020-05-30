@@ -52,9 +52,9 @@ class QuerySet(models.QuerySet):
             objects = objects.filter(**filter_dict)
         return objects
 
-    def dict(self, dictor):
+    def dict(self, dictor, *args):
         if callable(dictor):
-            return list(map(dictor, self))
+            return list(map(lambda x: dictor(x, *args), self))
         return self
 
     def page(self, pager, last=0, count=5):
