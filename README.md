@@ -35,14 +35,16 @@ errors.
 
 `error.py`
 ```python
+from SmartDjango import E, Hc
+
 class BaseError:
     OK = E("没有错误", hc=200)
-    FIELD_VALIDATOR = E("字段校验器错误", hc=500)
-    FIELD_PROCESSOR = E("字段处理器错误", hc=500)
-    FIELD_FORMAT = E("字段格式错误", hc=400)
-    RET_FORMAT = E("函数返回格式错误", hc=500)
-    MISS_PARAM = E("缺少参数{0}({1})", E.PH_FORMAT, hc=400)
-    STRANGE = E("未知错误", hc=500)
+    FIELD_VALIDATOR = E("字段校验器错误", hc=Hc.InternalServerError)
+    FIELD_PROCESSOR = E("字段处理器错误", hc=Hc.InternalServerError)
+    FIELD_FORMAT = E("字段格式错误", hc=Hc.BadRequest)
+    RET_FORMAT = E("函数返回格式错误", hc=Hc.InternalServerError)
+    MISS_PARAM = E("缺少参数{0}({1})", hc=Hc.BadRequest)
+    STRANGE = E("未知错误", hc=Hc.InternalServerError)
 ```
 
 We will later support more languages.
@@ -63,6 +65,10 @@ JSON is a popular format for data transferring. The following code is
 usually used to pack dict data to HTTPResponse object:
 
 ```python
+import json
+
+from django.http import HttpResponse
+
 def handler(r):
     data = get_data()  # type: dict
     return HttpResponse(
@@ -74,6 +80,8 @@ def handler(r):
 or an easier way:
 
 ```python
+from django.http import JsonResponse
+
 def handler(r):
     data = get_data()  # type: dict
     return JsonResponse(data)
@@ -132,13 +140,13 @@ class User(models.Model):
 Now we have a more elegant and magical solution:
 
 ```python
-from SmartDjango import models, E, Excp
+from SmartDjango import models, E, Hc
 
 @E.register
 class UserError:
     USERNAME_ALPHA = E(
         "Username should only be consist of alphas.", 
-        hc=403,  # http code
+        hc=Hc.Forbidden,  # http code
     )
 
 class User(models.Model):
@@ -147,14 +155,12 @@ class User(models.Model):
     ...
     
     @staticmethod
-    @Excp.pack
     def _valid_username(username: str):
         for c in username:
             if not 'a' < c.lower() < 'z':
-                return UserError.USERNAME_ALPHA  # or raise
+                raise UserError.USERNAME_ALPHA  # or raise
                 
     @classmethod
-    @Excp.pack
     def new(cls, username, password):
         cls.validator(locals())
         
@@ -207,7 +213,7 @@ Try this easier way:
 
 `models.py` 
 ```python
-from SmartDjango import models, E, Excp, P
+from SmartDjango import models, E
 
 @E.register
 ...
@@ -217,11 +223,11 @@ class User(models.Model):
         return self.pk
         
     def d(self):
-        return self.dictor('username', 'id')
+        return self.dictify('username', 'id')
 ...
 
 class UserP:
-    username, password = User.get_params('username', 'password')
+    username, password = User.P('username', 'password')
 ```
 
 `views.py`
@@ -269,11 +275,11 @@ some_handler)`, the some handler should be written as:
 from SmartDjango import P, Analyse
 
 @Analyse.r(
-    b=[P('name', read_name='name of insert'), P('color').set_null()],
+    b=[P('name', read_name='name of insert'), P('color').null()],
     q=[P('count').process(int).process(lambda x: min(1, x)), P('last').process(int)],
     a=[P('kind')]
 )
-def some_handler(r):
+def some_handler(_):
     pass
 ```
 
@@ -335,6 +341,8 @@ Assuming now you want to get some user's information with its user_id.
 Former way:
 
 ```python
+from SmartDjango import Analyse
+
 @Analyse.r(q=['user_id'])
 def handler(r):
     user_id = r.d.user_id
@@ -345,6 +353,8 @@ def handler(r):
 Magic way:
 
 ```python
+from SmartDjango import Analyse, P
+
 @Analyse.r(q=[P('user_id', yield_name='user').process(User.get)])
 def handler(r):
     return r.d.user.d()
@@ -353,7 +363,9 @@ def handler(r):
 Or use `Processor`:
 
 ```python
-@Analyse.r(q=[P('user_id').process(P.Processor(User.get, yield_name='user'))])
+from SmartDjango import Analyse, P, Processor
+
+@Analyse.r(q=[P('user_id').process(Processor(User.get, yield_name='user'))])
 def handler(r):
     return r.d.user.d()
 ```
@@ -380,13 +392,21 @@ processor defined, unless you use `begin` argument. The right way to
 handle the problem above should be one of the following codes.
 
 ```python
-P('time').processor(int).processor(datetime.datetime.fromtimestamp)
+import datetime
+
+from SmartDjango import P
+
+P('time').process(int).processor(datetime.datetime.fromtimestamp)
 ```
 
 or
 
 ```python
-P('time').processor(datetime.datetime.fromtimestamp).processor(int, begin=True)
+import datetime
+
+from SmartDjango import P
+
+P('time').process(datetime.datetime.fromtimestamp).processor(int, begin=True)
 ```
 
 You might think the second method is stupid in some kind, but it's an
@@ -394,8 +414,12 @@ usual phenomenon. Think about it:
 
 `models.py`
 ```python
+import datetime
+
+from SmartDjango import models
+
 class SomeModel(models.Model):
-    time = models.DatetimeField(...)
+    time = models.DateTimeField(...)
     
 class SomeModelP:
     time = SomeModel.get_param('time')
@@ -441,7 +465,7 @@ students whose name contains `Jyonn`, we would code like this:
 
 ```python
 SomeClass.objects.filter(name__contains='Jyonn')
-``` 
+```
 
 Search takes the secondary place cause `name='Jyonn'` means the name is
 exactly `Jyonn`. Now we want to take `search` as important as `filter`.
@@ -458,9 +482,13 @@ year(some day). Try this:
 
 `models.py`
 ```python
+import datetime
+
+from SmartDjango import models
+
 class App(models.Model):
     user_num = models.IntegerField(...)
-    create_time = models.DatetimeField(...)
+    create_time = models.DateTimeField(...)
     
     def _search_user_num(self, v):
         return dict(user_num__gte=v)
@@ -475,6 +503,9 @@ class AppP:
 
 `views.py`
 ```python
+from django.views import View
+from SmartDjango import Analyse
+
 class SearchView(View):
     @staticmethod
     @Analyse.r(q=[AppP.user_num, AppP.create_time])

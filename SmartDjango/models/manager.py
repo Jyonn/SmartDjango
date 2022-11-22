@@ -21,8 +21,8 @@ class Manager(models.Manager):
     def search(self, *args, **kwargs):
         return self.all().search(*args, **kwargs)
 
-    def dict(self, dictor):
-        return self.all().dict(dictor)
+    def dict(self, dictor, *args):
+        return self.all().dict(dictor, *args)
 
     def page(self, pager, last=0, count=5):
         return pager.page(self.all(), last=last, count=count)

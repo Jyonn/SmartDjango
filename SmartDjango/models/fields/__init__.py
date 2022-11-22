@@ -55,7 +55,7 @@ __all__ = [
     'AutoField', 'BLANK_CHOICE_DASH', 'BigAutoField', 'BigIntegerField',
     'BinaryField', 'BooleanField', 'CharField', 'CommaSeparatedIntegerField',
     'DateField', 'DateTimeField', 'DecimalField', 'DurationField',
-    'EmailField', 'Empty', 'Field', 'FieldDoesNotExist', 'FilePathField',
+    'EmailField', 'Empty', 'Field', 'FilePathField',
     'FloatField', 'GenericIPAddressField', 'IPAddressField', 'IntegerField',
     'NOT_PROVIDED', 'NullBooleanField', 'PositiveIntegerField',
     'PositiveSmallIntegerField', 'SlugField', 'SmallIntegerField', 'TextField',

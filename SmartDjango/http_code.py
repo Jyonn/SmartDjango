@@ -1,4 +1,4 @@
-class HC:
+class HttpCode:
     Continue = 100
     SwitchingProtocols = 101
     Processing = 102
@@ -61,6 +61,3 @@ class HC:
     NotExtended = 510
 
     UnparseableResponseHeaders = 600
-
-
-HttpCode = HC

@@ -1,95 +1,51 @@
-import json
+import warnings
 from functools import wraps
 
-from django.http import HttpResponse
-
+from .net_packer import NetPacker
 from .middleware import HttpPackMiddleware
-from .error import BaseError, ETemplate, EInstance, ErrorJar
+from .error import E
 
 
-class Excp(Exception):
-    http_response_always = False
-    data_packer = None
-
-    """
-    函数返回类（规范）
-    用于模型方法、路由控制方法等几乎所有函数中
-    """
-
-    def __init__(self, *args, **kwargs):
-        """
-        函数返回类构造器，根据变量个数判断
-        """
-        if not args:
-            self.error = BaseError.OK
-        else:
-            arg = args[0]
-            if isinstance(arg, ETemplate):
-                self.error = arg()
-            elif isinstance(arg, EInstance):
-                self.error = arg
-            elif isinstance(arg, Excp):
-                self.error = arg.error
-                self.body = arg.body
-                self.extend = arg.extend
-            else:
-                self.error = BaseError.OK()
-                self.body = args[0]
-        self.extend = self.extend or kwargs
-
-    def __getattribute__(self, item):
-        try:
-            return object.__getattribute__(self, item)
-        except AttributeError:
-            return None
-
-    def __str__(self):
-        return 'Ret(error=%s, body=%s, extend=%s)' % (self.error, self.body, self.extend)
-
-    @property
-    def ok(self):
-        return self.error.e.eid == BaseError.OK.eid
-
-    def erroris(self, e):
-        return self.error.e.eid == e.eid
-
-    eis = erroris
-
+class Excp:
     @staticmethod
     def pack(func):
+        warnings.warn(
+            'Excp.pack is deprecated, use "raise XXError.xx" instead of "return XXError.xx".',
+            DeprecationWarning)
+
         @wraps(func)
         def wrapper(*args, **kwargs):
-            ret = func(*args, **kwargs)
-            excp = Excp(ret)
-            if not excp.ok:
-                raise excp
-            return ret
+            e = func(*args, **kwargs)
+            if isinstance(e, E):
+                raise e
+            return e
         return wrapper
 
-    handle = HttpPackMiddleware
+    # handle = HttpPackMiddleware
+    @staticmethod
+    def handle(get_response):
+        warnings.warn(
+            'Excp.handle is deprecated, use NetPacker.pack instead.',
+            DeprecationWarning)
+        return HttpPackMiddleware(get_response)
 
     @classmethod
     def http_response(cls, o, using_data_packer=True):
-        ret = Excp(o)
-        error = ret.error
-        resp = dict(
-            identifier=ErrorJar.get_i(error),
-            code=error.e.eid,
-            msg=error.get_msg(),
-            body=ret.body,
-        )
-        if using_data_packer and cls.data_packer:
-            try:
-                resp = cls.data_packer(resp)
-            except Exception:
-                return cls.http_response(BaseError.HTTP_DATA_PACKER, using_data_packer=False)
-        return HttpResponse(
-            json.dumps(resp, ensure_ascii=False),
-            status=cls.http_response_always or error.e.hc,
-            content_type="application/json; encoding=utf-8",
-        )
+        warnings.warn(
+            'Excp.http_response is deprecated, use NetPacker.send instead.',
+            DeprecationWarning)
+        return NetPacker.send(o, using_data_packer=using_data_packer)
 
     @classmethod
     def custom_http_response(cls, http_code_always=None, data_packer=None):
-        cls.http_response_always = int(http_code_always)
-        cls.data_packer = data_packer if callable(data_packer) else None
+        warnings.warn(
+            'Excp.custom_http_response is deprecated, use NetPacker.customize instead.',
+            DeprecationWarning)
+        NetPacker.customize(http_code_always, data_packer)
+
+    @classmethod
+    def debugging(cls, off=False):
+        warnings.warn(
+            'Excp.debugging is deprecated, use NetPacker.set_mode instead.',
+            DeprecationWarning)
+        NetPacker.set_mode(debug=not off)
