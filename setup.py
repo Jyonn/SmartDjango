@@ -13,7 +13,7 @@ setup(
     platforms='any',
     packages=find_packages(),
     install_requires=[
-        'django==3.1.12',
+        'django==3.2.24',
         'smartify>=0.0.2',
         'oba',
     ],
