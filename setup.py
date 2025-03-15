@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='SmartDjango',
-    version='3.7.0',
+    name='smartdjango',
+    version='4.0.0',
     keywords=['django'],
     description='fast Django app development',
     long_description='field validation detector, model advanced search, unified error class',
@@ -13,7 +13,6 @@ setup(
     platforms='any',
     packages=find_packages(),
     install_requires=[
-        'django==3.1.12',
         'smartify>=0.0.2',
         'oba',
     ],

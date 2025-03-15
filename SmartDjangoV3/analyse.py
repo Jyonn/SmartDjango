@@ -20,8 +20,8 @@ class Analyse(BAnalyse):
     def r(cls, b=None, q=None, a=None, method=None):
         """
         decorator for validating HttpRequest
-        :param b: P list in it's BODY, in json format, without method in GET/DELETE
-        :param q: P list in it's query
+        :param b: P list in its BODY, in json format, without method in GET/DELETE
+        :param q: P list in its query
         :param a: P list in method/function argument
         :param method: Specify request method
         """
