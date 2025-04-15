@@ -38,6 +38,8 @@ class Validator:
         self.to_python = []
         self.validators = []
 
+        self._default_as_final = False
+
         if isinstance(name, str):
             name = Key(name, verbose_name, final_name)
         if name and not isinstance(name, Key):
@@ -79,8 +81,9 @@ class Validator:
         self.allow_null = allow_null
         return self
 
-    def default(self, value):
+    def default(self, value, as_final=False):
         self.default_value = value
+        self._default_as_final = as_final
         return self
 
     def to(self, to_python: Callable):
@@ -108,7 +111,10 @@ class Validator:
         if value is self.__UnSetValue:
             if self.default_value is self.__NoDefaultValue:
                 raise self._carry_key_info(ValidatorErrors.NO_DEFAULT)
+
             value = self.default_value
+            if self._default_as_final:
+                return value
 
         if value is None:
             if not self.allow_null:

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='smartdjango',
-    version='4.0.1',
+    version='4.0.2',
     keywords=['django'],
     description='fast Django app development',
     long_description='field validation detector, model advanced search, unified error class',
