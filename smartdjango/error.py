@@ -36,6 +36,13 @@ class Error(Exception):
             'identifier': self.identifier,
         }
 
+    def jsonl(self):
+        return {
+            'message': self.message,
+            'code': self.code,
+            'identifier': self.identifier,
+        }
+
     def __call__(self, details=None, user_message=None, **kwargs):
         message = self.message.format(**kwargs)
         if not user_message:
@@ -64,6 +71,10 @@ class Error(Exception):
             e.identifier = f'{class_name}@{name}'
 
         return class_
+
+    @classmethod
+    def all(cls):
+        return list(cls.__ERRORS)
 
 
 OK = Error('OK', code=Code.OK, identifier='OK')

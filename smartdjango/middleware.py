@@ -1,8 +1,7 @@
-import json
-
 from django.http import HttpResponse
 
 from smartdjango.error import Error, OK
+from smartdjango.utils import io
 
 
 class APIPacker:
@@ -31,8 +30,7 @@ class APIPacker:
         response = error.json()
         response['body'] = body
 
-        response = json.dumps(response, ensure_ascii=False)
-
+        response = io.json_dumps(response, indent=False)
         response = HttpResponse(
             response,
             status=error.code,
