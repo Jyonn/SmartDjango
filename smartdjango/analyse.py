@@ -37,7 +37,7 @@ def update_to_data(request: Request, target):
     request.data = Obj(data)
 
 
-def analyse(*validators: Validator, target_getter, target_setter, restrict_keys):
+def analyse(*validators: Validator | str, target_getter, target_setter, restrict_keys):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -55,11 +55,11 @@ def analyse(*validators: Validator, target_getter, target_setter, restrict_keys)
     return decorator
 
 
-def body(*validators: Validator, restrict_keys=True):
+def body(*validators: Validator | str, restrict_keys=True):
     raise NotImplementedError('body is deprecated, use json instead')
 
 
-def json(*validators: Validator, restrict_keys=True):
+def json(*validators: Validator | str, restrict_keys=True):
     def getter(request, kwargs):
         return io.json_loads(request.body.decode())
 
@@ -75,7 +75,7 @@ def json(*validators: Validator, restrict_keys=True):
     )
 
 
-def query(*validators: Validator, restrict_keys=False):
+def query(*validators: Validator | str, restrict_keys=False):
     def getter(request, kwargs):
         return request.GET.dict()
 
@@ -91,7 +91,7 @@ def query(*validators: Validator, restrict_keys=False):
     )
 
 
-def argument(*validators: Validator, restrict_keys=True):
+def argument(*validators: Validator | str, restrict_keys=True):
     def getter(request, kwargs):
         return kwargs
 

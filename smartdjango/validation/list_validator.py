@@ -10,7 +10,7 @@ class ListValidator(Validator):
         self.element_validator = validator
         return self
 
-    def elements(self, *validators: list):
+    def elements(self, *validators: Validator):
         self.element_validator = validators
         return self
 

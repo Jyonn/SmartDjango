@@ -13,7 +13,9 @@ class DictValidator(Validator):
         new.field_validators = self.field_validators.copy()
         return new
 
-    def field(self, validator: Validator):
+    def field(self, validator: Validator | str):
+        if isinstance(validator, str):
+            validator = Validator(validator)
         if validator.key is None:
             raise ValueError('Validator key is required for DictValidator field')
         if validator.key in self.field_validators:
@@ -21,7 +23,7 @@ class DictValidator(Validator):
         self.field_validators[validator.key] = validator
         return self
 
-    def fields(self, *validators):
+    def fields(self, *validators: Validator | str):
         for validator in validators:
             self.field(validator)
         return self

@@ -25,8 +25,11 @@ class ValidatorErrors:
 
 
 class Validator:
-    class __NoDefaultValue: pass
-    class __UnSetValue: pass
+    class __NoDefaultValue:
+        ...
+
+    class __UnSetValue:
+        ...
 
     @classmethod
     def unset(cls):
@@ -98,6 +101,7 @@ class Validator:
                 raise e
             except Exception as err:
                 raise ValidatorErrors.NOT_VALID(message=message, details=err)
+
         self.validators.append(wrap)
         return self
 
@@ -105,6 +109,7 @@ class Validator:
         def wrap(value):
             if not validator(value):
                 raise ValidatorErrors.NOT_VALID(message=message or '')
+
         return self.exception(wrap)
 
     def clean(self, value):
