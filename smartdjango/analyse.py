@@ -12,7 +12,7 @@ from smartdjango.validation.validator import Validator
 
 
 class Request(HttpRequest):
-    body: Obj
+    json: Obj
     query: Obj
     argument: Obj
     data: Obj
