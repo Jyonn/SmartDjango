@@ -1,8 +1,10 @@
+from typing import Dict
+
 from smartdjango.code import Code
 
 
 class Error(Exception):
-    __ERRORS = dict()
+    __ERRORS: Dict[str, 'Error'] = dict()
 
     """Base class for exceptions in this module."""
     def __init__(self, message: str, code=Code.OK, user_message=None, identifier=None):
@@ -15,7 +17,7 @@ class Error(Exception):
         self.user_message = user_message or message
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
         return self.__identifier
 
     @identifier.setter
@@ -58,6 +60,9 @@ class Error(Exception):
             error.details.append(details)
         return error
 
+    def __eq__(self, other: 'Error'):
+        return self.identifier == other.identifier
+
     @classmethod
     def register(cls, class_):
         class_name = class_.__name__
@@ -72,11 +77,11 @@ class Error(Exception):
 
         return class_
 
-    def ok(self):
+    def ok(self) -> bool:
         return self.identifier == 'OK'
 
     @classmethod
-    def all(cls):
+    def all(cls) -> Dict[str, 'Error']:
         return cls.__ERRORS
 
 
