@@ -2,7 +2,7 @@ from smartdjango.code import Code
 
 
 class Error(Exception):
-    __ERRORS = set()
+    __ERRORS = dict()
 
     """Base class for exceptions in this module."""
     def __init__(self, message: str, code=Code.OK, user_message=None, identifier=None):
@@ -25,7 +25,7 @@ class Error(Exception):
         if value in self.__ERRORS:
             raise AttributeError(f'Conflict error identifier: {value}')
         self.__identifier = value
-        self.__ERRORS.add(value)
+        self.__ERRORS[value] = self
 
     def json(self):
         return {
@@ -72,9 +72,12 @@ class Error(Exception):
 
         return class_
 
+    def ok(self):
+        return self.identifier == 'OK'
+
     @classmethod
     def all(cls):
-        return list(cls.__ERRORS)
+        return cls.__ERRORS
 
 
 OK = Error('OK', code=Code.OK, identifier='OK')

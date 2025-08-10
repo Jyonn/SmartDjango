@@ -75,28 +75,6 @@ def json(*validators: Validator, restrict_keys=True):
     )
 
 
-def body_(*validators: Validator, restrict_keys=False):
-    """
-    This is a special version of body that does not decode the request body.
-    It is used when the request body is not JSON encoded.
-    e.g., the request has been decoded by a method and needs to be processed further.
-    in this case, restrict_keys is default set to False
-    """
-    def getter(request, kwargs):
-        return request.body
-
-    def setter(request, target):
-        request._body = target
-        update_to_data(request, target)
-
-    return analyse(
-        *validators,
-        target_getter=getter,
-        target_setter=setter,
-        restrict_keys=restrict_keys
-    )
-
-
 def query(*validators: Validator, restrict_keys=False):
     def getter(request, kwargs):
         return request.GET.dict()
