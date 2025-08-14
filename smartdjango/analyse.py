@@ -6,7 +6,7 @@ from oba import Obj
 
 from smartdjango.code import Code
 from smartdjango.error import Error
-from smartdjango.utils import io
+from smartdjango.utils import io, inspect
 from smartdjango.validation.dict_validator import DictValidator
 from smartdjango.validation.validator import Validator
 
@@ -30,42 +30,38 @@ def get_request(*args):
     raise AnalyseErrors.REQUEST_NOT_FOUND
 
 
-def update_to_data(request: Request, target):
-    data = getattr(request, '_data', None)
+def update_to_data(req: Request, target):
+    data = getattr(req, '_data', None)
     data = data() if data is not None else {}
     data.update(target())
-    request.data = Obj(data)
+    req.data = Obj(data)
 
 
 def analyse(*validators: Validator | str, target_getter, target_setter, restrict_keys):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            request = get_request(*args)
-            target = target_getter(request, kwargs)
+            req = get_request(*args)
+            target = target_getter(req, kwargs)
 
             validator = DictValidator().fields(*validators)
             if restrict_keys:
                 validator.restrict_keys()
             target = validator.clean(target)
-            target_setter(request, Obj(target))
+            target_setter(req, Obj(target))
 
             return func(*args, **kwargs)
         return wrapper
     return decorator
 
 
-def body(*validators: Validator | str, restrict_keys=True):
-    raise NotImplementedError('body is deprecated, use json instead')
-
-
 def json(*validators: Validator | str, restrict_keys=True):
-    def getter(request, kwargs):
-        return io.json_loads(request.body.decode())
+    def getter(req, kwargs):
+        return io.json_loads(req.body.decode())
 
-    def setter(request, target):
-        request.json = target
-        update_to_data(request, target)
+    def setter(req, target):
+        req.json = target
+        update_to_data(req, target)
 
     return analyse(
         *validators,
@@ -76,12 +72,12 @@ def json(*validators: Validator | str, restrict_keys=True):
 
 
 def query(*validators: Validator | str, restrict_keys=False):
-    def getter(request, kwargs):
-        return request.GET.dict()
+    def getter(req, kwargs):
+        return req.GET.dict()
 
-    def setter(request, target):
-        request.query = target
-        update_to_data(request, target)
+    def setter(req, target):
+        req.query = target
+        update_to_data(req, target)
 
     return analyse(
         *validators,
@@ -92,12 +88,12 @@ def query(*validators: Validator | str, restrict_keys=False):
 
 
 def argument(*validators: Validator | str, restrict_keys=True):
-    def getter(request, kwargs):
+    def getter(req, kwargs):
         return kwargs
 
-    def setter(request, target):
-        request.argument = target
-        update_to_data(request, target)
+    def setter(req, target):
+        req.argument = target
+        update_to_data(req, target)
 
     return analyse(
         *validators,
@@ -111,9 +107,26 @@ def request(bool_func, message=None):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            request = get_request(*args)
-            Validator().bool(bool_func, message=message).clean(request)
+            req = get_request(*args)
+            Validator().bool(bool_func, message=message).clean(req)
             return func(*args, **kwargs)
 
+        return wrapper
+    return decorator
+
+
+def function(*validators: Validator | str, restrict_keys=True):
+    validator = DictValidator().fields(*validators)
+    if restrict_keys:
+        validator.restrict_keys()
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            args, kwargs = inspect.get_function_arguments(func, *args, **kwargs)
+            arguments = dict(**args, **kwargs)
+            arguments = validator.clean(arguments)
+
+            return func(**arguments)
         return wrapper
     return decorator
