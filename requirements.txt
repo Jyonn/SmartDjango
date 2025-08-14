@@ -1,5 +1,6 @@
-setuptools~=68.2.0
-smartdjango~=4.0.2
-Django~=5.2.4
-oba~=0.1.0
-smartify~=0.0.2
+setuptools
+smartdjango
+Django
+oba
+smartify
+diq

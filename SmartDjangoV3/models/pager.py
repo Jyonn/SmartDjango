@@ -16,6 +16,7 @@ class Page:
             next_value = next_dictor(self.next_value)
         else:
             next_value = self.next_value
+
         return dict(
             object_list=object_list,
             next_value=next_value,

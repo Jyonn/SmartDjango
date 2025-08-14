@@ -9,7 +9,7 @@ class Manager(models.Manager):
         self.restrict_args = tuple()
         self.restrict_kwargs = dict()
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet:
         return QuerySet(self.model, using=self._db).filter(*self.restrict_args,
                                                            **self.restrict_kwargs)
 
@@ -19,10 +19,10 @@ class Manager(models.Manager):
         return self
 
     def search(self, *args, **kwargs):
-        return self.all().search(*args, **kwargs)
+        return self.get_queryset().search(*args, **kwargs)
 
     def dict(self, dictor, *args):
-        return self.all().dict(dictor, *args)
+        return self.get_queryset().dict(dictor, *args)
 
     def page(self, pager, last=0, count=5):
         return pager.page(self.all(), last=last, count=count)

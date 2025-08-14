@@ -1,8 +1,8 @@
-# SmartDjango
+# smartdjango v4
 
 ## Introduction
 
-**SmartDjango** is a high-level packed developing tools for Django.
+**smartdjango** is a high-level packed developing tools for Django.
 
 It provides the following features:
 
@@ -20,11 +20,10 @@ It provides the following features:
 ## Installation
 
 ```
-pip install SmartDjango
+pip install smartdjango
 ```
 
-The latest version is `3.5.1`, building on 29th Oct, 2019. It requires
-`Django >= 2.2.5`.
+The latest version is `4.2.1`, building on Aug, 2025. It supports the latest django 5.
 
 ## Hints
 
@@ -35,16 +34,17 @@ errors.
 
 `error.py`
 ```python
-from SmartDjango import E, Hc
+from smartdjango import Error, Code
 
-class BaseError:
-    OK = E("没有错误", hc=200)
-    FIELD_VALIDATOR = E("字段校验器错误", hc=Hc.InternalServerError)
-    FIELD_PROCESSOR = E("字段处理器错误", hc=Hc.InternalServerError)
-    FIELD_FORMAT = E("字段格式错误", hc=Hc.BadRequest)
-    RET_FORMAT = E("函数返回格式错误", hc=Hc.InternalServerError)
-    MISS_PARAM = E("缺少参数{0}({1})", hc=Hc.BadRequest)
-    STRANGE = E("未知错误", hc=Hc.InternalServerError)
+@Error.register
+class BaseErrors:
+    OK = Error("没有错误", code=Code.OK)
+    FIELD_VALIDATOR = Error("字段校验器错误", code=Hc.InternalServerError)
+    FIELD_PROCESSOR = Error("字段处理器错误", code=Code.InternalServerError)
+    FIELD_FORMAT = Error("字段格式错误", code=Code.BadRequest)
+    RET_FORMAT = Error("函数返回格式错误", code=Code.InternalServerError)
+    MISS_PARAM = Error("缺少参数{0}({1})", code=Code.BadRequest)
+    STRANGE = Error("未知错误", code=Code.InternalServerError)
 ```
 
 We will later support more languages.
@@ -69,7 +69,7 @@ import json
 
 from django.http import HttpResponse
 
-def handler(r):
+def handler(request):
     data = get_data()  # type: dict
     return HttpResponse(
                 json.dumps(data, ensure_ascii=False),  # for showing Chinese characters
@@ -82,7 +82,7 @@ or an easier way:
 ```python
 from django.http import JsonResponse
 
-def handler(r):
+def handler(request):
     data = get_data()  # type: dict
     return JsonResponse(data)
 ```
@@ -90,7 +90,7 @@ def handler(r):
 Now it's the easiest way:
 
 ```python
-def handler(r):
+def handler(request):
     data = get_data()  # type: dict
     return data
 ```
@@ -104,7 +104,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     ...
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'SmartDjango.middleware.HttpPackMiddleware',
+    'smartdjango.middleware.APIPacker',
 ]
 ```
 
@@ -140,30 +140,43 @@ class User(models.Model):
 Now we have a more elegant and magical solution:
 
 ```python
-from SmartDjango import models, E, Hc
+from smartdjango import Error, Code
 
-@E.register
-class UserError:
-    USERNAME_ALPHA = E(
-        "Username should only be consist of alphas.", 
-        hc=Hc.Forbidden,  # http code
-    )
+from django.db import models
 
+@Error.register
+class UserErrors:
+    USERNAME_ALPHA = Error("Username should only be consist of alphas.", code=Code.Forbidden)
+    USERNAME_TOO_SHORT = Error("Username should be at least {length} characters.", code=Code.BadRequest)
+    PASSWORD_TOO_SHORT = Error("Password should be at least {length} characters.", code=Code.BadRequest)
+    
+    
+    
+class UserValidator:
+    MAX_USERNAME_LENGTH = 16
+    MIN_USERNAME_LENGTH = 6
+    MAX_PASSWORD_LENGTH = 16
+    MIN_PASSWORD_LENGTH = 6
+    
+    @classmethod
+    def username(cls, username):
+        if len(username) < cls.MIN_USERNAME_LENGTH:
+          raise UserErrors.USERNAME_TOO_SHORT(length=cls.MIN_USERNAME_LENGTH)
+        
+    @classmethod
+    def password(cls, password):
+        if len(password) < cls.MIN_PASSWORD_LENGTH:
+          raise UserErrors.PASSWORD_TOO_SHORT(length=cls.MIN_PASSWORD_LENGTH)
+        
+        
 class User(models.Model):
-    username = models.CharField(max_length=16, min_length=3)
-    password = models.CharField(max_length=16, min_length=6)
+    vldt = UserValidator
+    username = models.CharField(max_length=vldt.MAX_USERNAME_LENGTH, validators=[vldt.username])
+    password = models.CharField(max_length=vldt.MAX_PASSWORD_LENGTH, validators=[vldt.password])
     ...
     
-    @staticmethod
-    def _valid_username(username: str):
-        for c in username:
-            if not 'a' < c.lower() < 'z':
-                raise UserError.USERNAME_ALPHA  # or raise
-                
     @classmethod
     def new(cls, username, password):
-        cls.validator(locals())
-        
         user = cls(username=username, password=password)
         user.save()
         return user
@@ -199,9 +212,8 @@ from User.models import User
 import json
 
 class UserView(View):
-    @staticmethod
-    def post(r):
-        data = json.loads(r)
+    def post(self, request):
+        data = json.loads(request)
         username = data['username']
         password = data['password']
         user = User.new(username, password)  # assuming we adopt the code above
@@ -213,37 +225,44 @@ Try this easier way:
 
 `models.py` 
 ```python
-from SmartDjango import models, E
+from diq import Dictify
 
-@E.register
-...
+from smartdjango import Error, Params, Validator
 
-class User(models.Model):
-    def _readable_id(self):
+from django.db import models
+
+@Error.register
+class UserErrors: ...
+
+class User(models.Model, Dictify):
+    def _dictify_id(self):
         return self.pk
         
     def d(self):
         return self.dictify('username', 'id')
 ...
 
-class UserP:
-    username, password = User.P('username', 'password')
+class UserParams(metaclass=Params):
+    model_class = User
+    
+    username: Validator
+    password: Validator
 ```
 
 `views.py`
 ```python
 from django.views import View
-from SmartDjango import Analyse
-from User.models import User, UserP
+from smartdjango import analyse
+from User.models import User
+from User.params import UserParams
+
 
 class UserView(View):
-    @staticmethod
-    @Analyse.r(b=[UserP.username, UserP.password])  # 'b' means body 
-    def post(r):
-        username = r.d.username
-        password = r.d.password
-        user = User.new(username, password)  # or User.new(**r.d.dict())
-                                             # or User.new(**r.d.dict('username', 'password'))
+    @analyse.json(UserParams.username, UserParams.password)  
+    def post(self, request):
+        username = request.json.username
+        password = request.json.password
+        user = User.new(username, password)  # or User.new(**request.json())
         return user.d()
 ```
 
@@ -251,13 +270,12 @@ As you can see, we support many new features.
 
 #### Analyse parameters which can be custom or generated magically by model fields   
 
-Firstly, `UserP` means **Parameters created by User**. `UserP.username`
-and `UserP.passowrd` succeed features like max/min length and custom
+Firstly, `UserParams` means **Parameters created by User**. `UserParams.username`
+and `UserParams.passowrd` succeed features like max/min length and custom
 validator of username and password field.
 
-In `views.py`, we use `Analyse.r` to analyse parameters in `r`(request).
-`b` stands for `body`, `q` stands for `query` and `a` stands for
-arguments. For example, the API: 
+In `views.py`, we use `analyse.json` to analyse parameters in request `body`,
+`analyse.query` for `query`, and `analyse.argument` for `argument`. For example, the API: 
 
 ```
 POST /api/zoo/insect/search?count=5&last=0
@@ -272,27 +290,31 @@ with the url pattern: `path('/api/zoo/<str: kind>/search',
 some_handler)`, the some handler should be written as:
 
 ```python
-from SmartDjango import P, Analyse
+from smartdjango import analyse, Validator
 
-@Analyse.r(
-    b=[P('name', read_name='name of insert'), P('color').null()],
-    q=[P('count').process(int).process(lambda x: min(1, x)), P('last').process(int)],
-    a=[P('kind')]
+@analyse.json(
+    Validator('name', 'name of insert'),
+    Validator('color').null().default(None)
 )
-def some_handler(_):
+@analyse.query(
+    Validator('count').to(int).to(lambda x: min(1, x)),
+    Validator('last').to(int)
+)
+@analyse.argument('kind')
+def some_handler(request, kind):
     pass
 ```
 
-OK now we back to the `UserView`. The `Analyse` decorator will check
+OK now we back to the `UserView`. The `analyse` decorator will check
 these two parameters if valid. Only if they passed the analysis, they
-will be stored in `r.d` object. It's obviously more convenient to use
+will be stored in `request.data` or `request.query/json/argument` object. It's obviously more convenient to use
 **dot**-`username` than **quote**-`username`-**quote**.
 
 Also the `dict` method is provided to fetch all/specific parameters.
 
 #### Simple way to get information of a model instance
 
-The next magic is `models.dictor`.
+The next magic is `models.dictify`.
 
 It would be very boring to write something like this:
 
@@ -309,43 +331,40 @@ def d(self):
     )
 ```
 
-Now `dictor` is born, and the bore is gone.
+Now `dictify` is born, and the bore is gone.
 
-`dictor` will detect firstly `_readable_ATTRIBUTE` for each attributes.
-If detected, it will record dict(attribute=self._readable_ATTRIBUTE()),
+`dictify` will detect firstly `_dictify_ATTRIBUTE` for each attributes.
+If detected, it will record dict(attribute=self._dictify_ATTRIBUTE()),
 or else it will find if the model has this attribute.
 
 What we make easy is 2 `school`s at beginning but now only once. It can
 be simplified like this:
 
 ```python
-def _readable_id(self):
+def _dictify_id(self):
     return self.pk
     
-def _readable_birthday(self, timestamp=False):
-    if timestamp:
-        return self.birthday.timestamp()
-    else:
-        return self.birthday.strftime('%Y-%m-%d')
+def _dictify_birthday(self):
+    return self.birthday.timestamp()
         
 def d(self):
-    return self.dictor('id', ('birthday', True), 'username', 'description', 'male', 'school', ...) 
+    return self.dictor('id', 'birthday', 'username', 'description', 'male', 'school', ...) 
 ```
 
-### More custom for P
+### More custom for Validator
 
-#### yield_name and processor
+#### final_name and to_python
 
 Assuming now you want to get some user's information with its user_id.
 
 Former way:
 
 ```python
-from SmartDjango import Analyse
+from smartdjango import analyse
 
-@Analyse.r(q=['user_id'])
-def handler(r):
-    user_id = r.d.user_id
+@analyse.query('user_id')
+def handler(request):
+    user_id = request.query.user_id
     user = User.get(user_id)
     return user.d()
 ```
@@ -353,24 +372,12 @@ def handler(r):
 Magic way:
 
 ```python
-from SmartDjango import Analyse, P
+from smartdjango import analyse, Validator
 
-@Analyse.r(q=[P('user_id', yield_name='user').process(User.get)])
+@analyse.query(Validator('user_id', final_name='user').to(User.get))
 def handler(r):
     return r.d.user.d()
 ```
-
-Or use `Processor`:
-
-```python
-from SmartDjango import Analyse, P, Processor
-
-@Analyse.r(q=[P('user_id').process(Processor(User.get, yield_name='user'))])
-def handler(r):
-    return r.d.user.d()
-```
-
-The priority of `yield_name` in P is lower than it in `Processor`.
 
 #### validator
 
@@ -380,33 +387,22 @@ processors.
 
 Validator only returns error or None. If None, the value doesn't change.
 Processor will change value and is able to change parameter's name
-(yield_name).
+(final_name).
 
 If some parameters have more than one validators or processors, the
 order of those makes a significant effect. Take a timestamp string as an
 example, if we want to extract datetime information of the string
 `"1572451778"`, we firstly need to transfer it as the integer
 `1572451778`, then use datetime methods to process this integer to a
-datetime object. The order of the processors is based on the order the
-processor defined, unless you use `begin` argument. The right way to
+datetime object. The right way to
 handle the problem above should be one of the following codes.
 
 ```python
 import datetime
 
-from SmartDjango import P
+from smartdjango import Validator
 
-P('time').process(int).processor(datetime.datetime.fromtimestamp)
-```
-
-or
-
-```python
-import datetime
-
-from SmartDjango import P
-
-P('time').process(datetime.datetime.fromtimestamp).processor(int, begin=True)
+Validator('time').to(int).to(datetime.datetime.fromtimestamp)
 ```
 
 You might think the second method is stupid in some kind, but it's an
@@ -416,17 +412,19 @@ usual phenomenon. Think about it:
 ```python
 import datetime
 
-from SmartDjango import models
+from django.db import models
+from smartdjango import Params, Validator
 
 class SomeModel(models.Model):
     time = models.DateTimeField(...)
     
-class SomeModelP:
-    time = SomeModel.get_param('time')
-    time.processor(datetime.datetime.fromtimestamp, begin=True).processor(int, begin=True)
+class SomeModelParams(metaclass=Params):
+    time: Validator
+    
+SomeModelParams.time.to(int).to(datetime.datetime.fromtimestamp)
 ```
 
-`SomeModelP.time` is created as a `P`, and its build-in validator will
+`SomeModelParams.time` is created as a `Validator`, and its build-in validator will
 check if the value is instance of `Datetime`. As mentioned above,
 validator is stored with other processors (in one processor list), we
 need to process the string-format timestamp to datetime type. So what we
@@ -435,21 +433,18 @@ always do is add two processors.
 #### default and null
 
 Sometimes parameter may have default value or can be null. If some
-parameter `set_null` and it posted as null, it will only change it's
-`yield_name` and the value will stay `null`. You can use
-`set_null(null=False)` to change its state.
+parameter `null` and it posted as null, it will only change it's
+`final_name` and the value will stay `null`. You can use
+`null(null=False)` to change its state.
 
-If some parameter would have default value, `set_default` will show its
-function. When a `P` doesn't set null but set default, it will get a
-default value. For example, `P('count').set_default(10,
-through_processor=True)`. If `through_processor` is `False`(default),
-the value will stay at default value(10); but when this switch is on, it
-will go through all validators and processors.
+If some parameter would have default value, `default` will show its
+function. When a `Validator` doesn't set null but set default, it will get a
+default value. For example, `Validator('count').default(10)`.
 
 #### rename and clone
 
-`P` can be generated by `models.get_params`. If we want to custom some
-`P` based on it, we can use `clone` method to get a new `P` with all
+If we want to custom some
+`Validator` based on it, we can use `copy` method to get a new `Validator` with all
 features.
 
 Rename would be a huge demand, to change parameter's name, read name and
