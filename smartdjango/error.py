@@ -84,5 +84,8 @@ class Error(Exception):
     def all(cls) -> Dict[str, 'Error']:
         return cls.__ERRORS
 
+    def equals(self, other: 'Error'):
+        return self.identifier == other.identifier
+
 
 OK = Error('OK', code=Code.OK, identifier='OK')

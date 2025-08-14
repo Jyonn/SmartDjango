@@ -2,17 +2,27 @@ from smartdjango.models import QuerySet
 
 
 class Page:
+    OBJECTS = 'objects'
+    NEXT = 'next'
+    COUNT = 'count'
+
     def __init__(self, queryset, count, next_value):
         self.queryset: QuerySet = queryset
         self.count = count
         self.next_value = next_value
 
+    @classmethod
+    def rename(cls, objects, next_value, count):
+        cls.OBJECTS = objects
+        cls.NEXT = next_value
+        cls.COUNT = count
+
     def dict(self, object_map, next_map=None):
-        return dict(
-            object_list=self.queryset.map(object_map),
-            next_value=next_map(self.next_value) if next_map else self.next_value,
-            count=self.count,
-        )
+        return {
+            self.OBJECTS: self.queryset.map(object_map),
+            self.NEXT: next_map(self.next_value) if next_map else self.next_value,
+            self.COUNT: self.count,
+        }
 
 
 class Paginator:
