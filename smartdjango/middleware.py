@@ -19,6 +19,7 @@ class APIPacker:
     def process_exception(cls, _, error):
         if isinstance(error, Error):
             return cls.pack(error)
+        return None
 
     @staticmethod
     def pack(response):

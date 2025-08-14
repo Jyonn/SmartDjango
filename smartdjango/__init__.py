@@ -10,7 +10,6 @@ from smartdjango.choice import Choice
 from smartdjango.code import Code
 from smartdjango.error import Error, OK
 from smartdjango.middleware import APIPacker
-from smartdjango import processor
 
 
 __all__ = [
@@ -26,6 +25,5 @@ __all__ = [
     'Code',
     'Error',
     'APIPacker',
-    'processor',
     'OK'
 ]
