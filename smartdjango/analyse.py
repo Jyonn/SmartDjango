@@ -31,8 +31,9 @@ def get_request(*args):
 
 
 def update_to_data(req: Request, target):
-    data = getattr(req, '_data', None)
-    data = data() if data is not None else {}
+    data = getattr(req, 'data', {})
+    if isinstance(data, Obj):
+        data = data()
     data.update(target())
     req.data = Obj(data)
 

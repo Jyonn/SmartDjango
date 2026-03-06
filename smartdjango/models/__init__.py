@@ -1,11 +1,12 @@
 from diq import Dictify
-from django.db import models
+from django.db.models import *
+from django.db.models import Model as BaseModel
 
 from smartdjango.models.queryset import QuerySet
 from smartdjango.models.manager import Manager
 
 
-class Model(models.Model, Dictify):
+class Model(BaseModel, Dictify):
     objects = Manager()
 
     class Meta:

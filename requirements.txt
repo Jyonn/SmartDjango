@@ -1,6 +1,4 @@
 setuptools
-smartdjango
-Django
+django
 oba
-smartify
 diq
