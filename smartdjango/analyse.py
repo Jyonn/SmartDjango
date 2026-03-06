@@ -124,8 +124,7 @@ def function(*validators: Validator | str, restrict_keys=True):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            args, kwargs = inspect.get_function_arguments(func, *args, **kwargs)
-            arguments = dict(**args, **kwargs)
+            arguments = inspect.get_function_arguments(func, *args, **kwargs)
             arguments = validator.clean(arguments)
 
             return func(**arguments)

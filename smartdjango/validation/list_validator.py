@@ -11,13 +11,13 @@ class ListValidator(Validator):
         return self
 
     def elements(self, *validators: Validator):
-        self.element_validator = validators
+        self.element_validator = list(validators)
         return self
 
     def copy(self):
         new = super().copy()
         new.element_validator = self.element_validator
-        if isinstance(self.element_validator, list):
+        if isinstance(self.element_validator, (list, tuple)):
             new.element_validator = new.element_validator.copy()
         return new
 
@@ -30,7 +30,7 @@ class ListValidator(Validator):
         if self.element_validator is None:
             return value
 
-        if isinstance(self.element_validator, list):
+        if isinstance(self.element_validator, (list, tuple)):
             if len(self.element_validator) != len(value):
                 raise ValidatorErrors.LIST_LENGTH_MISMATCH
             values = [validator.clean(v) for validator, v in zip(self.element_validator, value)]
@@ -44,8 +44,9 @@ class ListValidator(Validator):
         if self.element_validator is not None:
             string += ' with element validator:'
 
-            if isinstance(self.element_validator, list):
+            if isinstance(self.element_validator, (list, tuple)):
                 for validator in self.element_validator:
                     string += self.indent('\n' + str(validator))
             else:
                 string += self.indent('\n' + str(self.element_validator))
+        return string

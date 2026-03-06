@@ -77,7 +77,8 @@ class Validator:
         new.default_value = self.default_value
         new.to_python = self.to_python.copy()
         new.validators = self.validators.copy()
-        new.key = self.key.copy()
+        new._default_as_final = self._default_as_final
+        new.key = self.key.copy() if self.key else None
         return new
 
     def null(self, allow_null=True):

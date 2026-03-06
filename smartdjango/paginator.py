@@ -49,6 +49,7 @@ class Paginator:
             order = '-' + order
 
         self.queryset = self.queryset.filter(**kwargs).order_by(order)
+        self.count = self.queryset.count()
 
     def get_page(
         self,

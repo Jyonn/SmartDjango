@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='smartdjango',
-    version='4.3.3',
+    version='4.3.4',
     keywords=['django'],
     description='fast Django app development',
     long_description='field validation detector, model advanced search, unified error class',
@@ -13,6 +13,8 @@ setup(
     platforms='any',
     packages=find_packages(),
     install_requires=[
+        'django',
         'oba',
+        'diq',
     ],
 )
