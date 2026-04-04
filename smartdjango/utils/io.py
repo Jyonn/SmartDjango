@@ -1,6 +1,8 @@
 import json
 import pickle
 
+from django.core.serializers.json import DjangoJSONEncoder
+
 from typing import Protocol, cast
 
 
@@ -24,12 +26,14 @@ def json_loads(s: str):
 
 
 def json_dumps(obj, indent=2) -> str:
-    return json.dumps(obj, indent=indent, ensure_ascii=False)
+    if indent is False:
+        indent = None
+    return json.dumps(obj, indent=indent, ensure_ascii=False, cls=DjangoJSONEncoder)
 
 
 def json_save(obj, filepath: str):
     with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump(obj, cast(SupportsWriteStr, f), indent=2, ensure_ascii=False)
+        json.dump(obj, cast(SupportsWriteStr, f), indent=2, ensure_ascii=False, cls=DjangoJSONEncoder)
 
 
 def jsonl_load(filepath: str):

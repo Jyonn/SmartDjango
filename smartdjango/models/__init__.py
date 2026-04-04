@@ -8,6 +8,12 @@ from smartdjango.models.manager import Manager
 
 class Model(BaseModel, Dictify):
     objects = Manager()
+    normalizers = None
+    validators = None
+    normalizer = None
+    validator = None
+    norm = None
+    vldt = None
 
     class Meta:
         abstract = True

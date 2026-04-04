@@ -167,6 +167,24 @@ UserParams.username  # returns cached Validator.from_field(...)
 
 This reduces duplication between model schema and input validation schema.
 
+Model-level hooks:
+
+- `model_class.normalizers.<field_name>` is appended as `Validator.to(...)`.
+- `model_class.validators.<field_name>` is appended as `Validator.exception(...)`.
+- Backward-compatible aliases `normalizer` / `validator` and `norm` / `vldt` are also supported.
+- Missing hook attributes are skipped.
+- If both a full-name hook and its alias are present for the same hook type and they point to different objects, `Params` raises `AttributeError` to avoid ambiguous configuration.
+
+Ordering for `Params`-derived validators:
+
+1. default / unset handling
+2. `None` handling
+3. `normalizers`
+4. field-derived validation from `Validator.from_field(...)`
+5. `validators`
+
+When `field.null` is true and the incoming value is `None`, validation returns `None` immediately and skips model-level hooks.
+
 #### `Key`
 
 - Normalizes key identity and output renaming.

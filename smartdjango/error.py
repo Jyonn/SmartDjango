@@ -1,13 +1,25 @@
-from typing import Dict
+from typing import Dict, Optional, Union
+
+from django.utils.encoding import force_str
+from django.utils.functional import Promise
 
 from smartdjango.code import Code
+
+
+MessageLike = Union[str, Promise]
 
 
 class Error(Exception):
     __ERRORS: Dict[str, 'Error'] = dict()
 
     """Base class for exceptions in this module."""
-    def __init__(self, message: str, code=Code.OK, user_message=None, identifier=None):
+    def __init__(
+        self,
+        message: MessageLike,
+        code=Code.OK,
+        user_message: Optional[MessageLike] = None,
+        identifier=None,
+    ):
         super().__init__(message)
 
         self.__identifier = identifier or None
@@ -31,29 +43,29 @@ class Error(Exception):
 
     def json(self):
         return {
-            'message': self.message,
+            'message': force_str(self.message),
             'code': self.code,
             'details': self.details,
-            'user_message': self.user_message,
+            'user_message': force_str(self.user_message),
             'identifier': self.identifier,
         }
 
     def jsonl(self):
         return {
-            'message': self.message,
+            'message': force_str(self.message),
             'code': self.code,
             'identifier': self.identifier,
         }
 
     def __call__(self, details=None, user_message=None, **kwargs):
-        message = self.message.format(**kwargs)
-        if not user_message:
-            user_message = self.user_message.format(**kwargs)
+        message = force_str(self.message).format(**kwargs)
+        if user_message is None:
+            user_message = force_str(self.user_message).format(**kwargs)
 
-        if details and not isinstance(details, str):
-            details = str(details)
-        if user_message and not isinstance(user_message, str):
-            user_message = str(user_message)
+        if details is not None and not isinstance(details, str):
+            details = force_str(details)
+        if user_message is not None and not isinstance(user_message, str):
+            user_message = force_str(user_message)
         error = Error(message, code=self.code, user_message=user_message, identifier=self.identifier)
         error.details = self.details.copy()
         if details is not None:

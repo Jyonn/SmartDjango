@@ -119,6 +119,22 @@ name_validator = UserParams.username  # derived from model field
 
 `Params` lazily creates validators from Django model fields.
 
+If the model defines `normalizers` / `validators`, `Params` applies same-named hooks.
+For backward compatibility, `normalizer` / `validator` and `norm` / `vldt` are also supported aliases.
+
+- `model.normalizers.<field_name>(value)`, `model.normalizer.<field_name>(value)`, or `model.norm.<field_name>(value)` is added via `Validator.to(...)`.
+- `model.validators.<field_name>(value)`, `model.validator.<field_name>(value)`, or `model.vldt.<field_name>(value)` is added via `Validator.exception(...)`.
+
+If a hook attribute is missing, it is skipped. If both the full name and alias are present for the same hook type and point to different objects, `Params` raises an `AttributeError` to avoid ambiguous behavior.
+
+Execution order remains:
+
+1. default / unset handling
+2. null handling
+3. `normalizers`
+4. field-derived validation
+5. `validators`
+
 ## Request/argument analysis
 
 Decorators in `smartdjango.analyse` validate and attach cleaned data.
